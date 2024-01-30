@@ -160,6 +160,9 @@ function main() {
                         break;
                     }
                     catch (e) {
+                        if (j === 5) {
+                            throw e;
+                        }
                         //
                     }
                 }
