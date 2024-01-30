@@ -8,6 +8,7 @@ import { WalletContractV4 } from '@ton/ton';
 import dotenv from 'dotenv'
 
 dotenv.config()
+dotenv.config({ path: 'config.txt' })
 
 const mySeed = process.env.SEED as string
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144')
@@ -120,7 +121,7 @@ async function main() {
       //
     }
     if (!mined) {
-      console.log(`${new Date()}: not mined`, i++)
+      console.log(`${new Date()}: not mined`, seed, i++)
     }
     if (mined) {
 
@@ -128,20 +129,26 @@ async function main() {
       const powInfo = await liteClient.runMethod(Address.parse(giverAddress), 'get_pow_params', Buffer.from([]), lastInfo.last)
       const powStack = Cell.fromBase64(powInfo.result as string)
       const stack = parseTuple(powStack)
-  
+
       const reader = new TupleReader(stack)
       const newSeed = reader.readBigNumber()
-      if(newSeed !== seed) {
+      if (newSeed !== seed) {
         console.log('Mined already too late seed')
         continue
       }
 
-      console.log(`${new Date()}:     mined`, i++)
+      console.log(`${new Date()}:     mined`, seed, i++)
 
+      let seqno = 0
+      try {
+        seqno = (await opened.getSeqno())
+      } catch (e) {
+        //
+      }
       for (let j = 0; j < 5; j++) {
         try {
           await opened.sendTransfer({
-            seqno: (await opened.getSeqno()) || 0,
+            seqno,
             secretKey: keyPair.secretKey,
             messages: [internal({
               to: giverAddress,

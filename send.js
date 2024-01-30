@@ -22,6 +22,7 @@ const fs_1 = __importDefault(require("fs"));
 const ton_1 = require("@ton/ton");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
+dotenv_1.default.config({ path: 'config.txt' });
 const mySeed = process.env.SEED;
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144');
 const givers = [
@@ -122,7 +123,7 @@ function main() {
                 //
             }
             if (!mined) {
-                console.log(`${new Date()}: not mined`, i++);
+                console.log(`${new Date()}: not mined`, seed, i++);
             }
             if (mined) {
                 const lastInfo = yield liteClient.getMasterchainInfo();
@@ -135,11 +136,18 @@ function main() {
                     console.log('Mined already too late seed');
                     continue;
                 }
-                console.log(`${new Date()}:     mined`, i++);
+                console.log(`${new Date()}:     mined`, seed, i++);
+                let seqno = 0;
+                try {
+                    seqno = (yield opened.getSeqno());
+                }
+                catch (e) {
+                    //
+                }
                 for (let j = 0; j < 5; j++) {
                     try {
                         yield opened.sendTransfer({
-                            seqno: (yield opened.getSeqno()) || 0,
+                            seqno,
                             secretKey: keyPair.secretKey,
                             messages: [(0, core_1.internal)({
                                     to: giverAddress,
