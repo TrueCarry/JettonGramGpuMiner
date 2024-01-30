@@ -106,7 +106,7 @@ async function main() {
 
     const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
     const path = `bocs/${randomName}`
-    const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({urlSafe: true, bounceable: true})} ${seed} ${complexity} ${iterations} ${bestGiver.address} ${path}`
+    const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${bestGiver.address} ${path}`
     try {
       const output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
     } catch (e) {
@@ -123,17 +123,24 @@ async function main() {
     }
     if (mined) {
       console.log(`${new Date()}:     mined`, i++)
-      await opened.sendTransfer({
-        seqno: (await opened.getSeqno()) || 0,
-        secretKey: keyPair.secretKey,
-        messages: [internal({
-          to: bestGiver.address,
-          value: toNano('0.05'),
-          bounce: true,
-          body: Cell.fromBoc(mined)[0].asSlice().loadRef(),
-        })],
-        sendMode: 3 as any,
-      })
+      for (let j = 0; j < 5; j++) {
+        try {
+          await opened.sendTransfer({
+            seqno: (await opened.getSeqno()) || 0,
+            secretKey: keyPair.secretKey,
+            messages: [internal({
+              to: bestGiver.address,
+              value: toNano('0.05'),
+              bounce: true,
+              body: Cell.fromBoc(mined)[0].asSlice().loadRef(),
+            })],
+            sendMode: 3 as any,
+          })
+          break
+        } catch (e) {
+          //
+        }
+      }
     }
   }
 }
