@@ -125,17 +125,25 @@ function main() {
             }
             if (mined) {
                 console.log(`${new Date()}:     mined`, i++);
-                yield opened.sendTransfer({
-                    seqno: (yield opened.getSeqno()) || 0,
-                    secretKey: keyPair.secretKey,
-                    messages: [(0, core_1.internal)({
-                            to: bestGiver.address,
-                            value: (0, core_1.toNano)('0.05'),
-                            bounce: true,
-                            body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
-                        })],
-                    sendMode: 3,
-                });
+                for (let j = 0; j < 5; j++) {
+                    try {
+                        yield opened.sendTransfer({
+                            seqno: (yield opened.getSeqno()) || 0,
+                            secretKey: keyPair.secretKey,
+                            messages: [(0, core_1.internal)({
+                                    to: bestGiver.address,
+                                    value: (0, core_1.toNano)('0.05'),
+                                    bounce: true,
+                                    body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
+                                })],
+                            sendMode: 3,
+                        });
+                        break;
+                    }
+                    catch (e) {
+                        //
+                    }
+                }
             }
         }
     });
