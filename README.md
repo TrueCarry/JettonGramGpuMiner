@@ -1,5 +1,7 @@
 # README
 
+Community - https://t.me/blckbazars
+
 Miner for GRAM jetton. CUDA GPU needed
 
 - Create `config.txt`
