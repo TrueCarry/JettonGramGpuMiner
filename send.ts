@@ -147,7 +147,7 @@ async function main() {
       }
       for (let j = 0; j < 5; j++) {
         try {
-          await opened.sendTransfer({
+          opened.sendTransfer({
             seqno,
             secretKey: keyPair.secretKey,
             messages: [internal({
@@ -157,10 +157,13 @@ async function main() {
               body: Cell.fromBoc(mined)[0].asSlice().loadRef(),
             })],
             sendMode: 3 as any,
+          }).catch(e => {
+            console.log('send transaction error', e)
+            //
           })
           break
         } catch (e) {
-          if (j === 5) {
+          if (j === 4) {
             throw e
           }
           //
