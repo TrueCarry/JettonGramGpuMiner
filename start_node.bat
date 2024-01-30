@@ -1,2 +1,1 @@
-npm install & node send.js
-pause
+npm install & node send.js & pause
