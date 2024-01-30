@@ -68,7 +68,7 @@ async function updateBestGivers(liteClient: LiteClient) {
 
     const hashes = totalDiff / complexity
     const coinsPerHash = giver.reward / Number(hashes)
-    if (coinsPerHash > bestGiver.coins) {
+    if (coinsPerHash > newBestGiber.coins) {
       newBestGiber = { address: giver.address, coins: coinsPerHash }
     }
   }))
