@@ -1,5 +1,21 @@
 # README
 
+Сообщество - https://t.me/blckbazars
+
+Майнер для жетона GRAM. Нужна видеокарта NVIDIA и Windows
+
+- Создайте `config.txt`
+- Напишите мнемоник в файле `config.txt` в формате
+```
+SEED=word1 word2
+```
+- Активируйте v4r2 кошелек. Отправьте на него средства, а потом отправьте транзакцию самому себе.
+- Установите NodeJs [https://nodejs.org](https://nodejs.org/en)
+- Запустите майнер открыв start_node.bat
+
+
+# EN
+
 Community - https://t.me/blckbazars
 
 Miner for GRAM jetton. CUDA GPU needed
