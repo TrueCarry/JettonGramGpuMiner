@@ -94,8 +94,9 @@ async function main() {
   }, 1000)
 
   while (go) {
+    const giverAddress = bestGiver.address
     const lastInfo = await liteClient.getMasterchainInfo()
-    const powInfo = await liteClient.runMethod(Address.parse(bestGiver.address), 'get_pow_params', Buffer.from([]), lastInfo.last)
+    const powInfo = await liteClient.runMethod(Address.parse(giverAddress), 'get_pow_params', Buffer.from([]), lastInfo.last)
     const powStack = Cell.fromBase64(powInfo.result as string)
     const stack = parseTuple(powStack)
 
@@ -106,7 +107,7 @@ async function main() {
 
     const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
     const path = `bocs/${randomName}`
-    const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${bestGiver.address} ${path}`
+    const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`
     try {
       const output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
     } catch (e) {
@@ -122,14 +123,28 @@ async function main() {
       console.log(`${new Date()}: not mined`, i++)
     }
     if (mined) {
+
+      const lastInfo = await liteClient.getMasterchainInfo()
+      const powInfo = await liteClient.runMethod(Address.parse(giverAddress), 'get_pow_params', Buffer.from([]), lastInfo.last)
+      const powStack = Cell.fromBase64(powInfo.result as string)
+      const stack = parseTuple(powStack)
+  
+      const reader = new TupleReader(stack)
+      const newSeed = reader.readBigNumber()
+      if(newSeed !== seed) {
+        console.log('Mined already too late seed')
+        continue
+      }
+
       console.log(`${new Date()}:     mined`, i++)
+
       for (let j = 0; j < 5; j++) {
         try {
           await opened.sendTransfer({
             seqno: (await opened.getSeqno()) || 0,
             secretKey: keyPair.secretKey,
             messages: [internal({
-              to: bestGiver.address,
+              to: giverAddress,
               value: toNano('0.05'),
               bounce: true,
               body: Cell.fromBoc(mined)[0].asSlice().loadRef(),

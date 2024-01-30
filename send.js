@@ -96,8 +96,9 @@ function main() {
             updateBestGivers(liteClient);
         }, 1000);
         while (go) {
+            const giverAddress = bestGiver.address;
             const lastInfo = yield liteClient.getMasterchainInfo();
-            const powInfo = yield liteClient.runMethod(core_1.Address.parse(bestGiver.address), 'get_pow_params', Buffer.from([]), lastInfo.last);
+            const powInfo = yield liteClient.runMethod(core_1.Address.parse(giverAddress), 'get_pow_params', Buffer.from([]), lastInfo.last);
             const powStack = core_1.Cell.fromBase64(powInfo.result);
             const stack = (0, core_1.parseTuple)(powStack);
             const reader = new core_1.TupleReader(stack);
@@ -106,7 +107,7 @@ function main() {
             const iterations = reader.readBigNumber();
             const randomName = (yield (0, crypto_1.getSecureRandomBytes)(8)).toString('hex') + '.boc';
             const path = `bocs/${randomName}`;
-            const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${bestGiver.address} ${path}`;
+            const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
             try {
                 const output = (0, child_process_1.execSync)(command, { encoding: 'utf-8', stdio: "pipe" }); // the default is 'buffer'
             }
@@ -124,6 +125,16 @@ function main() {
                 console.log(`${new Date()}: not mined`, i++);
             }
             if (mined) {
+                const lastInfo = yield liteClient.getMasterchainInfo();
+                const powInfo = yield liteClient.runMethod(core_1.Address.parse(giverAddress), 'get_pow_params', Buffer.from([]), lastInfo.last);
+                const powStack = core_1.Cell.fromBase64(powInfo.result);
+                const stack = (0, core_1.parseTuple)(powStack);
+                const reader = new core_1.TupleReader(stack);
+                const newSeed = reader.readBigNumber();
+                if (newSeed !== seed) {
+                    console.log('Mined already too late seed');
+                    continue;
+                }
                 console.log(`${new Date()}:     mined`, i++);
                 for (let j = 0; j < 5; j++) {
                     try {
@@ -131,7 +142,7 @@ function main() {
                             seqno: (yield opened.getSeqno()) || 0,
                             secretKey: keyPair.secretKey,
                             messages: [(0, core_1.internal)({
-                                    to: bestGiver.address,
+                                    to: giverAddress,
                                     value: (0, core_1.toNano)('0.05'),
                                     bounce: true,
                                     body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
