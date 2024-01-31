@@ -139,7 +139,7 @@ function main() {
                 console.log(`${new Date()}:     mined`, seed, i++);
                 let seqno = 0;
                 try {
-                    seqno = (yield opened.getSeqno());
+                    seqno = yield CallForSuccess(() => opened.getSeqno());
                 }
                 catch (e) {
                     //

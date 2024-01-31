@@ -142,7 +142,7 @@ async function main() {
 
       let seqno = 0
       try {
-        seqno = (await opened.getSeqno())
+        seqno = await CallForSuccess(() => opened.getSeqno())
       } catch (e) {
         //
       }
