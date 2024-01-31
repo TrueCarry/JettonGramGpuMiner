@@ -263,45 +263,24 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
         const w1 = liteServerClient.open(wallet);
         const w2 = ton4Client.open(wallet);
         const w3 = tonOrbsClient.open(wallet);
-        w1.sendTransfer({
-            seqno,
-            secretKey: keyPair.secretKey,
-            messages: [(0, core_1.internal)({
-                    to: giverAddress,
-                    value: (0, core_1.toNano)('0.05'),
-                    bounce: true,
-                    body: boc,
-                })],
-            sendMode: 3,
-        }).catch(e => {
-            //
-        });
-        w2.sendTransfer({
-            seqno,
-            secretKey: keyPair.secretKey,
-            messages: [(0, core_1.internal)({
-                    to: giverAddress,
-                    value: (0, core_1.toNano)('0.05'),
-                    bounce: true,
-                    body: boc,
-                })],
-            sendMode: 3,
-        }).catch(e => {
-            //
-        });
-        w3.sendTransfer({
-            seqno,
-            secretKey: keyPair.secretKey,
-            messages: [(0, core_1.internal)({
-                    to: giverAddress,
-                    value: (0, core_1.toNano)('0.05'),
-                    bounce: true,
-                    body: boc,
-                })],
-            sendMode: 3,
-        }).catch(e => {
-            //
-        });
+        const wallets = [w1, w2, w3];
+        for (let i = 0; i < 3; i++) {
+            for (const w of wallets) {
+                w.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    messages: [(0, core_1.internal)({
+                            to: giverAddress,
+                            value: (0, core_1.toNano)('0.05'),
+                            bounce: true,
+                            body: boc,
+                        })],
+                    sendMode: 3,
+                }).catch(e => {
+                    //
+                });
+            }
+        }
     });
 }
 // Function to call ton api untill we get response.
