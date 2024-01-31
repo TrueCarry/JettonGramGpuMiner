@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLiteClient = exports.getTon4ClientTonhub = exports.getTon4ClientOrbs = exports.getTon4Client = exports.intToIP = void 0;
+exports.getLiteClient = exports.getTonCenterClient = exports.getTon4ClientTonhub = exports.getTon4ClientOrbs = exports.getTon4Client = exports.intToIP = void 0;
 const ton_1 = require("@ton/ton");
 const axios_1 = __importDefault(require("axios"));
 const ton_lite_client_1 = require("ton-lite-client");
@@ -21,6 +21,7 @@ let lc4 = undefined;
 let lc = undefined;
 let lcOrbs = undefined;
 let lcHub = undefined;
+let lcToncenter = undefined;
 let createLiteClient;
 function intToIP(int) {
     const part1 = int & 255;
@@ -60,6 +61,16 @@ function getTon4ClientTonhub(_configUrl) {
     });
 }
 exports.getTon4ClientTonhub = getTon4ClientTonhub;
+function getTonCenterClient(_configUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (lcToncenter) {
+            return lcToncenter;
+        }
+        lcToncenter = new ton_1.TonClient({ endpoint: _configUrl !== null && _configUrl !== void 0 ? _configUrl : 'https://toncenter.com/api/v2/jsonRPC' });
+        return lcToncenter;
+    });
+}
+exports.getTonCenterClient = getTonCenterClient;
 function getLiteClient(_configUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         if (lc) {

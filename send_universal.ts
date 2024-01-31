@@ -1,4 +1,4 @@
-import { Address, Cell, TupleReader, internal, parseTuple, toNano } from '@ton/core'
+import { Address, Cell, TupleReader, beginCell, external, internal, parseTuple, storeMessage, toNano } from '@ton/core'
 import { KeyPair, getSecureRandomBytes, keyPairFromSeed, mnemonicToWalletKey } from '@ton/crypto'
 import axios from 'axios'
 // import { LiteClient, LiteRoundRobinEngine, LiteSingleEngine } from 'ton-lite-client'
@@ -10,7 +10,7 @@ import dotenv from 'dotenv'
 import { givers10000, givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
-import { getLiteClient, getTon4Client, getTon4ClientOrbs } from './client';
+import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient } from './client';
 import { HighloadWalletV2 } from '@scaleton/highload-wallet';
 import { OpenedContract } from '@ton/core';
 
@@ -274,12 +274,52 @@ async function sendMinedBoc(
     const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
     const ton4Client = await getTon4Client()
     const tonOrbsClient = await getTon4ClientOrbs()
+    const toncenterClient = await getTonCenterClient()
 
     const w1 = liteServerClient.open(wallet)
     const w2 = ton4Client.open(wallet)
     const w3 = tonOrbsClient.open(wallet)
+    const w4 = toncenterClient.open(wallet)
 
     const wallets = [w1, w2, w3]
+
+
+    // const transferBoc = w1.createTransfer({
+    //     seqno,
+    //     secretKey: keyPair.secretKey,
+    //     messages: [internal({
+    //         to: giverAddress,
+    //         value: toNano('0.05'),
+    //         bounce: true,
+    //         body: boc,
+    //     })],
+    //     sendMode: 3 as any,
+    // })
+
+
+    // console.log('send seqno', seqno)
+    // const ext = external({
+    //     to: Address.parse(giverAddress),
+    //     body: transferBoc
+    // })
+    // const dataBoc = beginCell().store(storeMessage(ext)).endCell()
+    // toncenterClient.sendFile(dataBoc.toBoc()).then(() => {
+    //     console.log('toncenter success')
+    // }).catch(e => {
+    //     //
+    //     console.log('toncenter send error', e)
+    // })
+    // w4.sendTransfer({
+    //     seqno,
+    //     secretKey: keyPair.secretKey,
+    //     messages: [internal({
+    //         to: giverAddress,
+    //         value: toNano('0.05'),
+    //         bounce: true,
+    //         body: boc,
+    //     })],
+    //     sendMode: 3 as any,
+    // })
 
     for (let i = 0; i < 3; i++) {
         for (const w of wallets) {
