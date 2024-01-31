@@ -58,7 +58,7 @@ async function updateBestGivers(liteClient: TonClient4) {
 
   let newBestGiber: { address: string, coins: number } = { address: '', coins: 0 }
   await Promise.all(givers.map(async (giver) => {
-    const stack = await CallForSuccess(() =>  liteClient.runMethod(lastInfo.last.seqno, Address.parse(giver.address), 'get_pow_params', []))
+    const stack = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, Address.parse(giver.address), 'get_pow_params', []))
     // const powStack = Cell.fromBase64(powInfo.result as string)
     // const stack = parseTuple(powStack)
 
@@ -148,19 +148,18 @@ async function main() {
       }
       for (let j = 0; j < 5; j++) {
         try {
-          opened.sendTransfer({
-            seqno,
-            secretKey: keyPair.secretKey,
-            messages: [internal({
-              to: giverAddress,
-              value: toNano('0.05'),
-              bounce: true,
-              body: Cell.fromBoc(mined)[0].asSlice().loadRef(),
-            })],
-            sendMode: 3 as any,
-          }).catch(e => {
-            console.log('send transaction error', e)
-            //
+          await CallForSuccess(() => {
+            return opened.sendTransfer({
+              seqno,
+              secretKey: keyPair.secretKey,
+              messages: [internal({
+                to: giverAddress,
+                value: toNano('0.05'),
+                bounce: true,
+                body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
+              })],
+              sendMode: 3 as any,
+            })
           })
           break
         } catch (e) {

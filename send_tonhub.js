@@ -146,19 +146,18 @@ function main() {
                 }
                 for (let j = 0; j < 5; j++) {
                     try {
-                        opened.sendTransfer({
-                            seqno,
-                            secretKey: keyPair.secretKey,
-                            messages: [(0, core_1.internal)({
-                                    to: giverAddress,
-                                    value: (0, core_1.toNano)('0.05'),
-                                    bounce: true,
-                                    body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
-                                })],
-                            sendMode: 3,
-                        }).catch(e => {
-                            console.log('send transaction error', e);
-                            //
+                        yield CallForSuccess(() => {
+                            return opened.sendTransfer({
+                                seqno,
+                                secretKey: keyPair.secretKey,
+                                messages: [(0, core_1.internal)({
+                                        to: giverAddress,
+                                        value: (0, core_1.toNano)('0.05'),
+                                        bounce: true,
+                                        body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
+                                    })],
+                                sendMode: 3,
+                            });
                         });
                         break;
                     }
