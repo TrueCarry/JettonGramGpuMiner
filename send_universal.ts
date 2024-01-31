@@ -1,4 +1,4 @@
-import { Address, Cell, TupleReader, beginCell, external, internal, parseTuple, storeMessage, toNano } from '@ton/core'
+import { Address, BitReader, BitString, Cell, TupleReader, beginCell, external, internal, parseTuple, storeMessage, toNano } from '@ton/core'
 import { KeyPair, getSecureRandomBytes, keyPairFromSeed, mnemonicToWalletKey } from '@ton/crypto'
 import axios from 'axios'
 // import { LiteClient, LiteRoundRobinEngine, LiteSingleEngine } from 'ton-lite-client'
@@ -25,7 +25,7 @@ const args = arg({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    // '--wallet': String, // v4r2 or highload
+    '--allow-shards': Boolean // if true - allows mining to other shards
 })
 
 
@@ -71,6 +71,8 @@ console.log('Using bin', bin)
 const gpu = args['--gpu'] ?? 0
 const timeout = args['--timeout'] ?? 5
 
+const allowShards = args['--allow-shards'] ?? false
+
 console.log('Using GPU', gpu)
 console.log('Using timeout', timeout)
 
@@ -80,12 +82,30 @@ const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823
 
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
-async function updateBestGivers(liteClient: TonClient4 | LiteClient) {
+async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: Address) {
+    const whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
+        const shardMaxDepth = 1
+        const giverAddress = Address.parse(giver.address)
+        const myShard = new BitReader(new BitString(myAddress.hash, 0, 1024)).loadUint(
+          shardMaxDepth
+        )
+        const giverShard = new BitReader(new BitString(giverAddress.hash, 0, 1024)).loadUint(
+          shardMaxDepth
+        )
+
+        if (myShard === giverShard) {
+            return true
+        }
+  
+        return false
+    })
+    console.log('Whitelist: ', whitelistGivers.length)
+
     if (liteClient instanceof TonClient4) {
         const lastInfo = await CallForSuccess(() => liteClient.getLastBlock())
 
         let newBestGiber: { address: string, coins: number } = { address: '', coins: 0 }
-        await Promise.all(givers.map(async (giver) => {
+        await Promise.all(whitelistGivers.map(async (giver) => {
             const stack = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, Address.parse(giver.address), 'get_pow_params', []))
             // const powStack = Cell.fromBase64(powInfo.result as string)
             // const stack = parseTuple(powStack)
@@ -107,7 +127,7 @@ async function updateBestGivers(liteClient: TonClient4 | LiteClient) {
         const lastInfo = await liteClient.getMasterchainInfo()
 
         let newBestGiber: { address: string, coins: number } = { address: '', coins: 0 }
-        await Promise.all(givers.map(async (giver) => {
+        await Promise.all(whitelistGivers.map(async (giver) => {
             const powInfo = await liteClient.runMethod(Address.parse(giver.address), 'get_pow_params', Buffer.from([]), lastInfo.last)
             const powStack = Cell.fromBase64(powInfo.result as string)
             const stack = parseTuple(powStack)
@@ -190,10 +210,10 @@ async function main() {
     }
     const opened = liteClient.open(wallet)
 
-    await updateBestGivers(liteClient)
+    await updateBestGivers(liteClient, wallet.address)
 
     setInterval(() => {
-        updateBestGivers(liteClient)
+        updateBestGivers(liteClient, wallet.address)
     }, 1000)
 
     while (go) {

@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _a, _b;
+var _a, _b, _c;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.delay = exports.CallForSuccess = void 0;
 const core_1 = require("@ton/core");
@@ -36,7 +36,7 @@ const args = (0, arg_1.default)({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    // '--wallet': String, // v4r2 or highload
+    '--allow-shards': Boolean // if true - allows mining to other shards
 });
 let givers = givers_1.givers10000;
 if (args['--givers']) {
@@ -79,17 +79,29 @@ if (args['--bin']) {
 console.log('Using bin', bin);
 const gpu = (_a = args['--gpu']) !== null && _a !== void 0 ? _a : 0;
 const timeout = (_b = args['--timeout']) !== null && _b !== void 0 ? _b : 5;
+const allowShards = (_c = args['--allow-shards']) !== null && _c !== void 0 ? _c : false;
 console.log('Using GPU', gpu);
 console.log('Using timeout', timeout);
 const mySeed = process.env.SEED;
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144');
 let bestGiver = { address: '', coins: 0 };
-function updateBestGivers(liteClient) {
+function updateBestGivers(liteClient, myAddress) {
     return __awaiter(this, void 0, void 0, function* () {
+        const whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
+            const shardMaxDepth = 1;
+            const giverAddress = core_1.Address.parse(giver.address);
+            const myShard = new core_1.BitReader(new core_1.BitString(myAddress.hash, 0, 1024)).loadUint(shardMaxDepth);
+            const giverShard = new core_1.BitReader(new core_1.BitString(giverAddress.hash, 0, 1024)).loadUint(shardMaxDepth);
+            if (myShard === giverShard) {
+                return true;
+            }
+            return false;
+        });
+        console.log('Whitelist: ', whitelistGivers.length);
         if (liteClient instanceof ton_1.TonClient4) {
             const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
             let newBestGiber = { address: '', coins: 0 };
-            yield Promise.all(givers.map((giver) => __awaiter(this, void 0, void 0, function* () {
+            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
                 const stack = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giver.address), 'get_pow_params', []));
                 // const powStack = Cell.fromBase64(powInfo.result as string)
                 // const stack = parseTuple(powStack)
@@ -108,7 +120,7 @@ function updateBestGivers(liteClient) {
         else if (liteClient instanceof ton_lite_client_1.LiteClient) {
             const lastInfo = yield liteClient.getMasterchainInfo();
             let newBestGiber = { address: '', coins: 0 };
-            yield Promise.all(givers.map((giver) => __awaiter(this, void 0, void 0, function* () {
+            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
                 const powInfo = yield liteClient.runMethod(core_1.Address.parse(giver.address), 'get_pow_params', Buffer.from([]), lastInfo.last);
                 const powStack = core_1.Cell.fromBase64(powInfo.result);
                 const stack = (0, core_1.parseTuple)(powStack);
@@ -185,9 +197,9 @@ function main() {
             console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }));
         }
         const opened = liteClient.open(wallet);
-        yield updateBestGivers(liteClient);
+        yield updateBestGivers(liteClient, wallet.address);
         setInterval(() => {
-            updateBestGivers(liteClient);
+            updateBestGivers(liteClient, wallet.address);
         }, 1000);
         while (go) {
             const giverAddress = bestGiver.address;
