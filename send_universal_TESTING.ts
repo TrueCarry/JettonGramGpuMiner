@@ -26,7 +26,8 @@ const args = arg({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    '--allow-shards': Boolean // if true - allows mining to other shards
+    '--allow-shards': Boolean, // if true - allows mining to other shards
+    '-c': String,  // blockchain config
 })
 
 
@@ -52,6 +53,7 @@ if (args['--givers']) {
             console.log('Using givers 10 000')
             break
     }
+
 } else {
     console.log('Using givers 10 000')
 }
@@ -212,17 +214,13 @@ async function main() {
     } else {
         if (args['--api'] === 'lite') {
             console.log('Using LiteServer API')
-            liteClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+            liteClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
         } else {
             console.log('Using TonHub API')
             liteClient = await getTon4Client()
         }
 
     }
-
-    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
-    const ton4Client = await getTon4Client()
-    const tonOrbsClient = await getTon4ClientOrbs()
 
     const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
     const wallet = WalletContractV4.create({
@@ -333,7 +331,7 @@ async function sendMinedBoc(
     giverAddress: string,
     boc: Cell
 ) {
-    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+    const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
     const ton4Client = await getTon4Client()
     const tonOrbsClient = await getTon4ClientOrbs()
     const toncenterClient = await getTonCenterClient()
