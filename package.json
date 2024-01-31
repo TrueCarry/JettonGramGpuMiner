@@ -14,6 +14,7 @@
     "@ton/core": "^0.54.0",
     "@ton/crypto": "^3.2.0",
     "@ton/ton": "^13.9.0",
+    "arg": "^5.0.2",
     "dotenv": "^16.4.1",
     "ton-lite-client": "npm:@truecarry/ton-lite-client@^3.1.1",
     "ts-node": "^10.9.2",
