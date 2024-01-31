@@ -11,8 +11,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a, _b;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.delay = exports.CallForSuccess = exports.getClient = exports.intToIP = void 0;
+exports.delay = exports.CallForSuccess = void 0;
 const core_1 = require("@ton/core");
 const crypto_1 = require("@ton/crypto");
 // import { LiteClient, LiteRoundRobinEngine, LiteSingleEngine } from 'ton-lite-client'
@@ -23,12 +24,18 @@ const ton_2 = require("@ton/ton");
 const dotenv_1 = __importDefault(require("dotenv"));
 const givers_1 = require("./givers");
 const arg_1 = __importDefault(require("arg"));
+const ton_lite_client_1 = require("ton-lite-client");
+const client_1 = require("./client");
 dotenv_1.default.config({ path: 'config.txt.txt' });
 dotenv_1.default.config({ path: '.env.txt' });
 dotenv_1.default.config();
 dotenv_1.default.config({ path: 'config.txt' });
 const args = (0, arg_1.default)({
-    '--givers': Number,
+    '--givers': Number, // 100 1000 10000
+    '--api': String, // lite, tonhub
+    '--bin': String, // cuda, opencl or path to miner
+    '--gpu': Number, // gpu id, default 0
+    '--timeout': Number, // Timeout for mining in seconds
 });
 let givers = givers_1.givers10000;
 if (args['--givers']) {
@@ -40,47 +47,129 @@ if (args['--givers']) {
     switch (val) {
         case 100:
             givers = givers_1.givers100;
+            console.log('Using givers 100');
             break;
         case 1000:
             givers = givers_1.givers1000;
+            console.log('Using givers 1 000');
             break;
         case 10000:
             givers = givers_1.givers10000;
+            console.log('Using givers 10 000');
             break;
     }
 }
+else {
+    console.log('Using givers 10 000');
+}
+let bin = '.\\pow-miner-cuda.exe';
+if (args['--bin']) {
+    const argBin = args['--bin'];
+    if (argBin === 'cuda') {
+        bin = '.\\pow-miner-cuda.exe';
+    }
+    else if (argBin === 'opencl' || argBin === 'amd') {
+        bin = '.\\pow-miner-opencl.exe';
+    }
+    else {
+        bin = argBin;
+    }
+}
+console.log('Using bin', bin);
+const gpu = (_a = args['--gpu']) !== null && _a !== void 0 ? _a : 0;
+const timeout = (_b = args['--timeout']) !== null && _b !== void 0 ? _b : 5;
+console.log('Using GPU', gpu);
+console.log('Using timeout', timeout);
 const mySeed = process.env.SEED;
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144');
-let lc = undefined;
-let createLiteClient;
 let bestGiver = { address: '', coins: 0 };
 function updateBestGivers(liteClient) {
     return __awaiter(this, void 0, void 0, function* () {
-        const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
-        let newBestGiber = { address: '', coins: 0 };
-        yield Promise.all(givers.map((giver) => __awaiter(this, void 0, void 0, function* () {
-            const stack = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giver.address), 'get_pow_params', []));
-            // const powStack = Cell.fromBase64(powInfo.result as string)
-            // const stack = parseTuple(powStack)
-            const reader = new core_1.TupleReader(stack.result);
+        if (liteClient instanceof ton_1.TonClient4) {
+            const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
+            let newBestGiber = { address: '', coins: 0 };
+            yield Promise.all(givers.map((giver) => __awaiter(this, void 0, void 0, function* () {
+                const stack = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giver.address), 'get_pow_params', []));
+                // const powStack = Cell.fromBase64(powInfo.result as string)
+                // const stack = parseTuple(powStack)
+                const reader = new core_1.TupleReader(stack.result);
+                const seed = reader.readBigNumber();
+                const complexity = reader.readBigNumber();
+                const iterations = reader.readBigNumber();
+                const hashes = totalDiff / complexity;
+                const coinsPerHash = giver.reward / Number(hashes);
+                if (coinsPerHash > newBestGiber.coins) {
+                    newBestGiber = { address: giver.address, coins: coinsPerHash };
+                }
+            })));
+            bestGiver = newBestGiber;
+        }
+        else if (liteClient instanceof ton_lite_client_1.LiteClient) {
+            const lastInfo = yield liteClient.getMasterchainInfo();
+            let newBestGiber = { address: '', coins: 0 };
+            yield Promise.all(givers.map((giver) => __awaiter(this, void 0, void 0, function* () {
+                const powInfo = yield liteClient.runMethod(core_1.Address.parse(giver.address), 'get_pow_params', Buffer.from([]), lastInfo.last);
+                const powStack = core_1.Cell.fromBase64(powInfo.result);
+                const stack = (0, core_1.parseTuple)(powStack);
+                const reader = new core_1.TupleReader(stack);
+                const seed = reader.readBigNumber();
+                const complexity = reader.readBigNumber();
+                const iterations = reader.readBigNumber();
+                const hashes = totalDiff / complexity;
+                const coinsPerHash = giver.reward / Number(hashes);
+                if (coinsPerHash > newBestGiber.coins) {
+                    newBestGiber = { address: giver.address, coins: coinsPerHash };
+                }
+            })));
+            bestGiver = newBestGiber;
+        }
+    });
+}
+function getPowInfo(liteClient, address) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (liteClient instanceof ton_1.TonClient4) {
+            const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
+            const powInfo = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, address, 'get_pow_params', []));
+            const reader = new core_1.TupleReader(powInfo.result);
             const seed = reader.readBigNumber();
             const complexity = reader.readBigNumber();
             const iterations = reader.readBigNumber();
-            const hashes = totalDiff / complexity;
-            const coinsPerHash = giver.reward / Number(hashes);
-            if (coinsPerHash > newBestGiber.coins) {
-                newBestGiber = { address: giver.address, coins: coinsPerHash };
-            }
-        })));
-        bestGiver = newBestGiber;
+            return [seed, complexity, iterations];
+        }
+        else if (liteClient instanceof ton_lite_client_1.LiteClient) {
+            const lastInfo = yield liteClient.getMasterchainInfo();
+            const powInfo = yield liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last);
+            const powStack = core_1.Cell.fromBase64(powInfo.result);
+            const stack = (0, core_1.parseTuple)(powStack);
+            const reader = new core_1.TupleReader(stack);
+            const seed = reader.readBigNumber();
+            const complexity = reader.readBigNumber();
+            const iterations = reader.readBigNumber();
+            return [seed, complexity, iterations];
+        }
+        throw new Error('invalid client');
     });
 }
 let go = true;
 let i = 0;
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
+        let liteClient;
+        if (!args['--api']) {
+            console.log('Using TonHub API');
+            liteClient = yield (0, client_1.getTon4Client)();
+        }
+        else {
+            if (args['--api'] === 'lite') {
+                console.log('Using LiteServer API');
+                liteClient = yield (0, client_1.getLiteClient)('https://ton-blockchain.github.io/global.config.json');
+            }
+            else {
+                console.log('Using TonHub API');
+                liteClient = yield (0, client_1.getTon4Client)();
+            }
+        }
         const keyPair = yield (0, crypto_1.mnemonicToWalletKey)(mySeed.split(' '));
-        const liteClient = yield getClient();
         const wallet = ton_2.WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
@@ -92,17 +181,10 @@ function main() {
         }, 1000);
         while (go) {
             const giverAddress = bestGiver.address;
-            const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
-            const powInfo = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giverAddress), 'get_pow_params', []));
-            // const powStack = Cell.fromBase64(powInfo.result as string)
-            // const stack = parseTuple(powStack)
-            const reader = new core_1.TupleReader(powInfo.result);
-            const seed = reader.readBigNumber();
-            const complexity = reader.readBigNumber();
-            const iterations = reader.readBigNumber();
+            const [seed, complexity, iterations] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
             const randomName = (yield (0, crypto_1.getSecureRandomBytes)(8)).toString('hex') + '.boc';
             const path = `bocs/${randomName}`;
-            const command = `.\\pow-miner-cuda.exe -g 0 -F 128 -t 5 ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
+            const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
             try {
                 const output = (0, child_process_1.execSync)(command, { encoding: 'utf-8', stdio: "pipe" }); // the default is 'buffer'
             }
@@ -120,12 +202,7 @@ function main() {
                 console.log(`${new Date()}: not mined`, seed, i++);
             }
             if (mined) {
-                const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
-                const powInfo = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giverAddress), 'get_pow_params', []));
-                // const powStack = Cell.fromBase64(powInfo.result as string)
-                // const stack = parseTuple(powStack)
-                const reader = new core_1.TupleReader(powInfo.result);
-                const newSeed = reader.readBigNumber();
+                const [newSeed] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
                 if (newSeed !== seed) {
                     console.log('Mined already too late seed');
                     continue;
@@ -167,24 +244,6 @@ function main() {
     });
 }
 main();
-function intToIP(int) {
-    const part1 = int & 255;
-    const part2 = (int >> 8) & 255;
-    const part3 = (int >> 16) & 255;
-    const part4 = (int >> 24) & 255;
-    return `${part4}.${part3}.${part2}.${part1}`;
-}
-exports.intToIP = intToIP;
-function getClient(_configUrl) {
-    return __awaiter(this, void 0, void 0, function* () {
-        if (lc) {
-            return lc;
-        }
-        lc = new ton_1.TonClient4({ endpoint: _configUrl !== null && _configUrl !== void 0 ? _configUrl : 'https://mainnet-v4.tonhubapi.com' });
-        return lc;
-    });
-}
-exports.getClient = getClient;
 // Function to call ton api untill we get response.
 // Because testnet is pretty unstable we need to make sure response is final
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
