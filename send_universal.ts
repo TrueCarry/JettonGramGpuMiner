@@ -183,9 +183,9 @@ async function main() {
         publicKey: keyPair.publicKey
     })
     if (args['--wallet'] === 'highload') {
-        console.log('Using highload wallet')
+        console.log('Using highload wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
     } else {
-        console.log('Using v4r2 wallet')
+        console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
     }
     const opened = liteClient.open(wallet)
 
