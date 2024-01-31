@@ -1,5 +1,5 @@
 import { Address, Cell, TupleReader, internal, parseTuple, toNano } from '@ton/core'
-import { getSecureRandomBytes, keyPairFromSeed, mnemonicToWalletKey } from '@ton/crypto'
+import { KeyPair, getSecureRandomBytes, keyPairFromSeed, mnemonicToWalletKey } from '@ton/crypto'
 import axios from 'axios'
 // import { LiteClient, LiteRoundRobinEngine, LiteSingleEngine } from 'ton-lite-client'
 import { TonClient4 } from '@ton/ton';
@@ -10,7 +10,7 @@ import dotenv from 'dotenv'
 import { givers10000, givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
-import { getLiteClient, getTon4Client } from './client';
+import { getLiteClient, getTon4Client, getTon4ClientOrbs } from './client';
 import { HighloadWalletV2 } from '@scaleton/highload-wallet';
 import { OpenedContract } from '@ton/core';
 
@@ -25,7 +25,7 @@ const args = arg({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    '--wallet': String, // v4r2 or highload
+    // '--wallet': String, // v4r2 or highload
 })
 
 
@@ -173,12 +173,13 @@ async function main() {
         }
 
     }
+
+    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+    const ton4Client = await getTon4Client()
+    const tonOrbsClient = await getTon4ClientOrbs()
+
     const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
-    const walletV4 = WalletContractV4.create({
-        workchain: 0,
-        publicKey: keyPair.publicKey
-    })
-    const wallet = args['--wallet'] === 'highload' ? new HighloadWalletV2(keyPair.publicKey) : WalletContractV4.create({
+    const wallet = WalletContractV4.create({
         workchain: 0,
         publicKey: keyPair.publicKey
     })
@@ -225,64 +226,101 @@ async function main() {
 
             console.log(`${new Date()}:     mined`, seed, i++)
 
-            if (args['--wallet'] === 'highload') {
-                let w = opened as OpenedContract<HighloadWalletV2>
-                const queryId = w.generateQueryId(60)
-                for (let j = 0; j < 5; j++) {
-                    try {
-                        await CallForSuccess(() => w.sendTransfer({
-                            queryId: queryId,
-                            secretKey: keyPair.secretKey,
-                            messages: [[internal({
-                                to: bestGiver.address,
-                                value: toNano('0.05'),
-                                bounce: true,
-                                body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
-                            }), 3 as any]],
-                        }))
-                        break
-                    } catch (e) {
-                        //
-                    }
-                }
-            } else {
-                let w = opened as OpenedContract<WalletContractV4>
-                let seqno = 0
-                try {
-                    seqno = await CallForSuccess(() => w.getSeqno())
-                } catch (e) {
-                    //
-                }
-                for (let j = 0; j < 5; j++) {
-                    try {
-                        await CallForSuccess(() => {
 
-                            return w.sendTransfer({
-                                seqno,
-                                secretKey: keyPair.secretKey,
-                                messages: [internal({
-                                    to: giverAddress,
-                                    value: toNano('0.05'),
-                                    bounce: true,
-                                    body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
-                                })],
-                                sendMode: 3 as any,
-                            })
-                        })
-                        break
-                    } catch (e) {
-                        if (j === 4) {
-                            throw e
-                        }
-                        //
-                    }
-                }
+            let w = opened as OpenedContract<WalletContractV4>
+            let seqno = 0
+            try {
+                seqno = await CallForSuccess(() => w.getSeqno())
+            } catch (e) {
+                //
             }
+            sendMinedBoc(wallet, seqno, keyPair, giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
+            // for (let j = 0; j < 5; j++) {
+            //     try {
+            //         await CallForSuccess(() => {
+
+            //             return w.sendTransfer({
+            //                 seqno,
+            //                 secretKey: keyPair.secretKey,
+            //                 messages: [internal({
+            //                     to: giverAddress,
+            //                     value: toNano('0.05'),
+            //                     bounce: true,
+            //                     body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
+            //                 })],
+            //                 sendMode: 3 as any,
+            //             })
+            //         })
+            //         break
+            //     } catch (e) {
+            //         if (j === 4) {
+            //             throw e
+            //         }
+            //         //
+            //     }
+            // }
         }
     }
 }
 main()
 
+async function sendMinedBoc(
+    wallet: WalletContractV4,
+    seqno: number,
+    keyPair: KeyPair,
+    giverAddress: string,
+    boc: Cell
+) {
+    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+    const ton4Client = await getTon4Client()
+    const tonOrbsClient = await getTon4ClientOrbs()
+
+    const w1 = liteServerClient.open(wallet)
+    const w2 = ton4Client.open(wallet)
+    const w3 = tonOrbsClient.open(wallet)
+
+    w1.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [internal({
+            to: giverAddress,
+            value: toNano('0.05'),
+            bounce: true,
+            body: boc,
+        })],
+        sendMode: 3 as any,
+    }).catch(e => {
+        //
+    })
+
+    w2.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [internal({
+            to: giverAddress,
+            value: toNano('0.05'),
+            bounce: true,
+            body: boc,
+        })],
+        sendMode: 3 as any,
+    }).catch(e => {
+        //
+    })
+
+    w3.sendTransfer({
+        seqno,
+        secretKey: keyPair.secretKey,
+        messages: [internal({
+            to: giverAddress,
+            value: toNano('0.05'),
+            bounce: true,
+            body: boc,
+        })],
+        sendMode: 3 as any,
+    }).catch(e => {
+        //
+    })
+}
 
 
 // Function to call ton api untill we get response.
