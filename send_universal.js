@@ -26,6 +26,7 @@ const givers_1 = require("./givers");
 const arg_1 = __importDefault(require("arg"));
 const ton_lite_client_1 = require("ton-lite-client");
 const client_1 = require("./client");
+const highload_wallet_1 = require("@scaleton/highload-wallet");
 dotenv_1.default.config({ path: 'config.txt.txt' });
 dotenv_1.default.config({ path: '.env.txt' });
 dotenv_1.default.config();
@@ -36,6 +37,7 @@ const args = (0, arg_1.default)({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
+    '--wallet': String, // v4r2 or highload
 });
 let givers = givers_1.givers10000;
 if (args['--givers']) {
@@ -170,10 +172,20 @@ function main() {
             }
         }
         const keyPair = yield (0, crypto_1.mnemonicToWalletKey)(mySeed.split(' '));
-        const wallet = ton_2.WalletContractV4.create({
+        const walletV4 = ton_2.WalletContractV4.create({
             workchain: 0,
             publicKey: keyPair.publicKey
         });
+        const wallet = args['--wallet'] === 'highload' ? new highload_wallet_1.HighloadWalletV2(keyPair.publicKey) : ton_2.WalletContractV4.create({
+            workchain: 0,
+            publicKey: keyPair.publicKey
+        });
+        if (args['--wallet'] === 'highload') {
+            console.log('Using highload wallet', wallet.address.toString({ bounceable: false, urlSafe: true }));
+        }
+        else {
+            console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }));
+        }
         const opened = liteClient.open(wallet);
         yield updateBestGivers(liteClient);
         setInterval(() => {
@@ -208,35 +220,60 @@ function main() {
                     continue;
                 }
                 console.log(`${new Date()}:     mined`, seed, i++);
-                let seqno = 0;
-                try {
-                    seqno = yield CallForSuccess(() => opened.getSeqno());
-                }
-                catch (e) {
-                    //
-                }
-                for (let j = 0; j < 5; j++) {
-                    try {
-                        yield CallForSuccess(() => {
-                            return opened.sendTransfer({
-                                seqno,
+                if (args['--wallet'] === 'highload') {
+                    let w = opened;
+                    const queryId = w.generateQueryId(60);
+                    for (let j = 0; j < 5; j++) {
+                        try {
+                            yield CallForSuccess(() => w.sendTransfer({
+                                queryId: queryId,
                                 secretKey: keyPair.secretKey,
-                                messages: [(0, core_1.internal)({
-                                        to: giverAddress,
-                                        value: (0, core_1.toNano)('0.05'),
-                                        bounce: true,
-                                        body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
-                                    })],
-                                sendMode: 3,
-                            });
-                        });
-                        break;
+                                messages: [[(0, core_1.internal)({
+                                            to: bestGiver.address,
+                                            value: (0, core_1.toNano)('0.05'),
+                                            bounce: true,
+                                            body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
+                                        }), 3]],
+                            }));
+                            break;
+                        }
+                        catch (e) {
+                            //
+                        }
+                    }
+                }
+                else {
+                    let w = opened;
+                    let seqno = 0;
+                    try {
+                        seqno = yield CallForSuccess(() => w.getSeqno());
                     }
                     catch (e) {
-                        if (j === 4) {
-                            throw e;
-                        }
                         //
+                    }
+                    for (let j = 0; j < 5; j++) {
+                        try {
+                            yield CallForSuccess(() => {
+                                return w.sendTransfer({
+                                    seqno,
+                                    secretKey: keyPair.secretKey,
+                                    messages: [(0, core_1.internal)({
+                                            to: giverAddress,
+                                            value: (0, core_1.toNano)('0.05'),
+                                            bounce: true,
+                                            body: core_1.Cell.fromBoc(mined)[0].asSlice().loadRef(),
+                                        })],
+                                    sendMode: 3,
+                                });
+                            });
+                            break;
+                        }
+                        catch (e) {
+                            if (j === 4) {
+                                throw e;
+                            }
+                            //
+                        }
                     }
                 }
             }
