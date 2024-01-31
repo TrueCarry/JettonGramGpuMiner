@@ -16,6 +16,7 @@ exports.getLiteClient = exports.getTon4Client = exports.intToIP = void 0;
 const ton_1 = require("@ton/ton");
 const axios_1 = __importDefault(require("axios"));
 const ton_lite_client_1 = require("ton-lite-client");
+const ton_access_1 = require("@orbs-network/ton-access");
 let lc4 = undefined;
 let lc = undefined;
 let createLiteClient;
@@ -32,7 +33,7 @@ function getTon4Client(_configUrl) {
         if (lc4) {
             return lc4;
         }
-        lc4 = new ton_1.TonClient4({ endpoint: _configUrl !== null && _configUrl !== void 0 ? _configUrl : 'https://mainnet-v4.tonhubapi.com' });
+        lc4 = new ton_1.TonClient4({ endpoint: _configUrl !== null && _configUrl !== void 0 ? _configUrl : yield (0, ton_access_1.getHttpV4Endpoint)() });
         return lc4;
     });
 }
