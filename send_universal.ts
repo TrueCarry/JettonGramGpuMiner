@@ -11,6 +11,8 @@ import { givers10000, givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
 import { getLiteClient, getTon4Client } from './client';
+import { HighloadWalletV2 } from '@scaleton/highload-wallet';
+import { OpenedContract } from '@ton/core';
 
 dotenv.config({ path: 'config.txt.txt' })
 dotenv.config({ path: '.env.txt' })
@@ -23,6 +25,7 @@ const args = arg({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
+    '--wallet': String, // v4r2 or highload
 })
 
 
@@ -171,10 +174,19 @@ async function main() {
 
     }
     const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
-    const wallet = WalletContractV4.create({
+    const walletV4 = WalletContractV4.create({
         workchain: 0,
         publicKey: keyPair.publicKey
     })
+    const wallet = args['--wallet'] === 'highload' ? new HighloadWalletV2(keyPair.publicKey) : WalletContractV4.create({
+        workchain: 0,
+        publicKey: keyPair.publicKey
+    })
+    if (args['--wallet'] === 'highload') {
+        console.log('Using highload wallet')
+    } else {
+        console.log('Using v4r2 wallet')
+    }
     const opened = liteClient.open(wallet)
 
     await updateBestGivers(liteClient)
@@ -213,33 +225,57 @@ async function main() {
 
             console.log(`${new Date()}:     mined`, seed, i++)
 
-            let seqno = 0
-            try {
-                seqno = await CallForSuccess(() => opened.getSeqno())
-            } catch (e) {
-                //
-            }
-            for (let j = 0; j < 5; j++) {
-                try {
-                    await CallForSuccess(() => {
-                        return opened.sendTransfer({
-                            seqno,
+            if (args['--wallet'] === 'highload') {
+                let w = opened as OpenedContract<HighloadWalletV2>
+                const queryId = w.generateQueryId(60)
+                for (let j = 0; j < 5; j++) {
+                    try {
+                        await CallForSuccess(() => w.sendTransfer({
+                            queryId: queryId,
                             secretKey: keyPair.secretKey,
-                            messages: [internal({
-                                to: giverAddress,
+                            messages: [[internal({
+                                to: bestGiver.address,
                                 value: toNano('0.05'),
                                 bounce: true,
                                 body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
-                            })],
-                            sendMode: 3 as any,
-                        })
-                    })
-                    break
-                } catch (e) {
-                    if (j === 4) {
-                        throw e
+                            }), 3 as any]],
+                        }))
+                        break
+                    } catch (e) {
+                        //
                     }
+                }
+            } else {
+                let w = opened as OpenedContract<WalletContractV4>
+                let seqno = 0
+                try {
+                    seqno = await CallForSuccess(() => w.getSeqno())
+                } catch (e) {
                     //
+                }
+                for (let j = 0; j < 5; j++) {
+                    try {
+                        await CallForSuccess(() => {
+
+                            return w.sendTransfer({
+                                seqno,
+                                secretKey: keyPair.secretKey,
+                                messages: [internal({
+                                    to: giverAddress,
+                                    value: toNano('0.05'),
+                                    bounce: true,
+                                    body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
+                                })],
+                                sendMode: 3 as any,
+                            })
+                        })
+                        break
+                    } catch (e) {
+                        if (j === 4) {
+                            throw e
+                        }
+                        //
+                    }
                 }
             }
         }
