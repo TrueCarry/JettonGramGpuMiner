@@ -36,7 +36,8 @@ const args = (0, arg_1.default)({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    '--allow-shards': Boolean // if true - allows mining to other shards
+    '--allow-shards': Boolean, // if true - allows mining to other shards
+    '-c': String, // blockchain config
 });
 let givers = givers_1.givers10000;
 if (args['--givers']) {
@@ -166,6 +167,7 @@ function getPowInfo(liteClient, address) {
 let go = true;
 let i = 0;
 function main() {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
         let liteClient;
         if (!args['--api']) {
@@ -175,16 +177,13 @@ function main() {
         else {
             if (args['--api'] === 'lite') {
                 console.log('Using LiteServer API');
-                liteClient = yield (0, client_1.getLiteClient)('https://ton-blockchain.github.io/global.config.json');
+                liteClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
             }
             else {
                 console.log('Using TonHub API');
                 liteClient = yield (0, client_1.getTon4Client)();
             }
         }
-        const liteServerClient = yield (0, client_1.getLiteClient)('https://ton-blockchain.github.io/global.config.json');
-        const ton4Client = yield (0, client_1.getTon4Client)();
-        const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
         const keyPair = yield (0, crypto_1.mnemonicToWalletKey)(mySeed.split(' '));
         const wallet = ton_2.WalletContractV4.create({
             workchain: 0,
@@ -268,8 +267,9 @@ function main() {
 }
 main();
 function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
+    var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const liteServerClient = yield (0, client_1.getLiteClient)('https://ton-blockchain.github.io/global.config.json');
+        const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
         const ton4Client = yield (0, client_1.getTon4Client)();
         const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
         const toncenterClient = yield (0, client_1.getTonCenterClient)();

@@ -25,7 +25,8 @@ const args = arg({
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
-    '--allow-shards': Boolean // if true - allows mining to other shards
+    '--allow-shards': Boolean, // if true - allows mining to other shards
+    '-c': String,  // blockchain config
 })
 
 
@@ -87,16 +88,16 @@ async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: 
         const shardMaxDepth = 1
         const giverAddress = Address.parse(giver.address)
         const myShard = new BitReader(new BitString(myAddress.hash, 0, 1024)).loadUint(
-          shardMaxDepth
+            shardMaxDepth
         )
         const giverShard = new BitReader(new BitString(giverAddress.hash, 0, 1024)).loadUint(
-          shardMaxDepth
+            shardMaxDepth
         )
 
         if (myShard === giverShard) {
             return true
         }
-  
+
         return false
     })
     console.log('Whitelist: ', whitelistGivers.length)
@@ -186,17 +187,13 @@ async function main() {
     } else {
         if (args['--api'] === 'lite') {
             console.log('Using LiteServer API')
-            liteClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+            liteClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
         } else {
             console.log('Using TonHub API')
             liteClient = await getTon4Client()
         }
 
     }
-
-    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
-    const ton4Client = await getTon4Client()
-    const tonOrbsClient = await getTon4ClientOrbs()
 
     const keyPair = await mnemonicToWalletKey(mySeed.split(' '))
     const wallet = WalletContractV4.create({
@@ -291,7 +288,7 @@ async function sendMinedBoc(
     giverAddress: string,
     boc: Cell
 ) {
-    const liteServerClient = await getLiteClient('https://ton-blockchain.github.io/global.config.json')
+    const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
     const ton4Client = await getTon4Client()
     const tonOrbsClient = await getTon4ClientOrbs()
     const toncenterClient = await getTonCenterClient()
