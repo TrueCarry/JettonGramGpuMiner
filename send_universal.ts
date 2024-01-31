@@ -279,47 +279,25 @@ async function sendMinedBoc(
     const w2 = ton4Client.open(wallet)
     const w3 = tonOrbsClient.open(wallet)
 
-    w1.sendTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [internal({
-            to: giverAddress,
-            value: toNano('0.05'),
-            bounce: true,
-            body: boc,
-        })],
-        sendMode: 3 as any,
-    }).catch(e => {
-        //
-    })
+    const wallets = [w1, w2, w3]
 
-    w2.sendTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [internal({
-            to: giverAddress,
-            value: toNano('0.05'),
-            bounce: true,
-            body: boc,
-        })],
-        sendMode: 3 as any,
-    }).catch(e => {
-        //
-    })
-
-    w3.sendTransfer({
-        seqno,
-        secretKey: keyPair.secretKey,
-        messages: [internal({
-            to: giverAddress,
-            value: toNano('0.05'),
-            bounce: true,
-            body: boc,
-        })],
-        sendMode: 3 as any,
-    }).catch(e => {
-        //
-    })
+    for (let i = 0; i < 3; i++) {
+        for (const w of wallets) {
+            w.sendTransfer({
+                seqno,
+                secretKey: keyPair.secretKey,
+                messages: [internal({
+                    to: giverAddress,
+                    value: toNano('0.05'),
+                    bounce: true,
+                    body: boc,
+                })],
+                sendMode: 3 as any,
+            }).catch(e => {
+                //
+            })
+        }
+    }
 }
 
 
