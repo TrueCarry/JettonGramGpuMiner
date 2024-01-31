@@ -1,6 +1,7 @@
 import { TonClient4 } from "@ton/ton"
 import axios from "axios"
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from "ton-lite-client"
+import { getHttpEndpoint, getHttpV4Endpoint } from "@orbs-network/ton-access";
 
 let lc4: TonClient4 | undefined = undefined
 let lc: LiteClient | undefined = undefined
@@ -20,7 +21,7 @@ export async function getTon4Client(_configUrl?: string): Promise<TonClient4> {
         return lc4
     }
 
-    lc4 = new TonClient4({ endpoint: _configUrl ?? 'https://mainnet-v4.tonhubapi.com' })
+    lc4 = new TonClient4({ endpoint: _configUrl ?? await getHttpV4Endpoint() })
     return lc4 as TonClient4
 }
 
