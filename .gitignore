@@ -3,3 +3,4 @@ node_modules
 gpu_0_miner_log.txt
 .env
 config.txt
+minertools
