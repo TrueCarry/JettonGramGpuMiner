@@ -260,10 +260,46 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
         const liteServerClient = yield (0, client_1.getLiteClient)('https://ton-blockchain.github.io/global.config.json');
         const ton4Client = yield (0, client_1.getTon4Client)();
         const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
+        const toncenterClient = yield (0, client_1.getTonCenterClient)();
         const w1 = liteServerClient.open(wallet);
         const w2 = ton4Client.open(wallet);
         const w3 = tonOrbsClient.open(wallet);
+        const w4 = toncenterClient.open(wallet);
         const wallets = [w1, w2, w3];
+        // const transferBoc = w1.createTransfer({
+        //     seqno,
+        //     secretKey: keyPair.secretKey,
+        //     messages: [internal({
+        //         to: giverAddress,
+        //         value: toNano('0.05'),
+        //         bounce: true,
+        //         body: boc,
+        //     })],
+        //     sendMode: 3 as any,
+        // })
+        // console.log('send seqno', seqno)
+        // const ext = external({
+        //     to: Address.parse(giverAddress),
+        //     body: transferBoc
+        // })
+        // const dataBoc = beginCell().store(storeMessage(ext)).endCell()
+        // toncenterClient.sendFile(dataBoc.toBoc()).then(() => {
+        //     console.log('toncenter success')
+        // }).catch(e => {
+        //     //
+        //     console.log('toncenter send error', e)
+        // })
+        // w4.sendTransfer({
+        //     seqno,
+        //     secretKey: keyPair.secretKey,
+        //     messages: [internal({
+        //         to: giverAddress,
+        //         value: toNano('0.05'),
+        //         bounce: true,
+        //         body: boc,
+        //     })],
+        //     sendMode: 3 as any,
+        // })
         for (let i = 0; i < 3; i++) {
             for (const w of wallets) {
                 w.sendTransfer({
