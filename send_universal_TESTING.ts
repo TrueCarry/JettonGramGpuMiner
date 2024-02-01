@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 import fs from 'fs'
 import { WalletContractV4 } from '@ton/ton';
 import dotenv from 'dotenv'
-import { givers10000, givers100, givers1000 } from './givers'
+import { givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
 import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient } from './client';
@@ -31,10 +31,10 @@ const args = arg({
 })
 
 
-let givers = givers10000
+let givers = givers1000
 if (args['--givers']) {
     const val = args['--givers']
-    const allowed = [100, 1000, 10000]
+    const allowed = [100, 1000]
     if (!allowed.includes(val)) {
         throw new Error('Invalid --givers argument')
     }
@@ -48,10 +48,10 @@ if (args['--givers']) {
             givers = givers1000
             console.log('Using givers 1 000')
             break
-        case 10000:
-            givers = givers10000
-            console.log('Using givers 10 000')
-            break
+        // case 10000:
+        //     givers = givers10000
+        //     console.log('Using givers 10 000')
+        //     break
     }
 
 } else {
@@ -189,7 +189,7 @@ async function getPowInfo(liteClient: TonClient4 | LiteClient, address: Address,
     } else if (liteClient instanceof LiteClient) {
         // console.log('lastInfoRoot', lastInfoRoot)
         const lastInfo = lastInfoRoot ?? (await liteClient.getMasterchainInfo()).last
-        const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo, {awaitSeqno: lastInfo.seqno, timeout: 100})
+        const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo, { awaitSeqno: lastInfo.seqno, timeout: 100 })
         const powStack = Cell.fromBase64(powInfo.result as string)
         const stack = parseTuple(powStack)
 
@@ -246,7 +246,7 @@ async function main() {
 
     while (go) {
         // console.log('waiting master')
-        const nextMaster  = await getNextMaster(liteClient)
+        const nextMaster = await getNextMaster(liteClient)
         console.log('got next master')
         const giverAddress = bestGiver.address
         const [seed, complexity, iterations] = await getPowInfo(liteClient, Address.parse(giverAddress), nextMaster)
