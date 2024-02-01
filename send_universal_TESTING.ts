@@ -187,7 +187,7 @@ async function getPowInfo(liteClient: TonClient4 | LiteClient, address: Address,
 
         return [seed, complexity, iterations]
     } else if (liteClient instanceof LiteClient) {
-        console.log('lastInfoRoot', lastInfoRoot)
+        // console.log('lastInfoRoot', lastInfoRoot)
         const lastInfo = lastInfoRoot ?? (await liteClient.getMasterchainInfo()).last
         const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo, {awaitSeqno: lastInfo.seqno, timeout: 100})
         const powStack = Cell.fromBase64(powInfo.result as string)

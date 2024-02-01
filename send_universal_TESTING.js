@@ -175,7 +175,7 @@ function getPowInfo(liteClient, address, lastInfoRoot) {
             return [seed, complexity, iterations];
         }
         else if (liteClient instanceof ton_lite_client_1.LiteClient) {
-            console.log('lastInfoRoot', lastInfoRoot);
+            // console.log('lastInfoRoot', lastInfoRoot)
             const lastInfo = lastInfoRoot !== null && lastInfoRoot !== void 0 ? lastInfoRoot : (yield liteClient.getMasterchainInfo()).last;
             const powInfo = yield liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo, { awaitSeqno: lastInfo.seqno, timeout: 100 });
             const powStack = core_1.Cell.fromBase64(powInfo.result);
