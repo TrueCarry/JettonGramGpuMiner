@@ -39,10 +39,10 @@ const args = (0, arg_1.default)({
     '--allow-shards': Boolean, // if true - allows mining to other shards
     '-c': String, // blockchain config
 });
-let givers = givers_1.givers10000;
+let givers = givers_1.givers1000;
 if (args['--givers']) {
     const val = args['--givers'];
-    const allowed = [100, 1000, 10000];
+    const allowed = [100, 1000];
     if (!allowed.includes(val)) {
         throw new Error('Invalid --givers argument');
     }
@@ -54,10 +54,6 @@ if (args['--givers']) {
         case 1000:
             givers = givers_1.givers1000;
             console.log('Using givers 1 000');
-            break;
-        case 10000:
-            givers = givers_1.givers10000;
-            console.log('Using givers 10 000');
             break;
     }
 }

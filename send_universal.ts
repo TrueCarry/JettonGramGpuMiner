@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 import fs from 'fs'
 import { WalletContractV4 } from '@ton/ton';
 import dotenv from 'dotenv'
-import { givers10000, givers100, givers1000 } from './givers'
+import { givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
 import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient } from './client';
@@ -30,10 +30,10 @@ const args = arg({
 })
 
 
-let givers = givers10000
+let givers = givers1000
 if (args['--givers']) {
     const val = args['--givers']
-    const allowed = [100, 1000, 10000]
+    const allowed = [100, 1000]
     if (!allowed.includes(val)) {
         throw new Error('Invalid --givers argument')
     }
@@ -46,10 +46,6 @@ if (args['--givers']) {
         case 1000:
             givers = givers1000
             console.log('Using givers 1 000')
-            break
-        case 10000:
-            givers = givers10000
-            console.log('Using givers 10 000')
             break
     }
 } else {
