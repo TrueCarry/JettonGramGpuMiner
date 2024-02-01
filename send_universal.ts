@@ -84,7 +84,7 @@ const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
 async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: Address) {
-    const whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
+    let whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
         const shardMaxDepth = 1
         const giverAddress = Address.parse(giver.address)
         const myShard = new BitReader(new BitString(myAddress.hash, 0, 1024)).loadUint(
@@ -101,6 +101,10 @@ async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: 
         return false
     })
     console.log('Whitelist: ', whitelistGivers.length)
+    if (whitelistGivers.length === 0) {
+        console.log('Shard givers empty, using all')
+        whitelistGivers = [...givers]
+    }
 
     if (liteClient instanceof TonClient4) {
         const lastInfo = await CallForSuccess(() => liteClient.getLastBlock())

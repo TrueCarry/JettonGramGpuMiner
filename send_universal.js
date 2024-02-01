@@ -88,7 +88,7 @@ const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823
 let bestGiver = { address: '', coins: 0 };
 function updateBestGivers(liteClient, myAddress) {
     return __awaiter(this, void 0, void 0, function* () {
-        const whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
+        let whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
             const shardMaxDepth = 1;
             const giverAddress = core_1.Address.parse(giver.address);
             const myShard = new core_1.BitReader(new core_1.BitString(myAddress.hash, 0, 1024)).loadUint(shardMaxDepth);
@@ -99,6 +99,10 @@ function updateBestGivers(liteClient, myAddress) {
             return false;
         });
         console.log('Whitelist: ', whitelistGivers.length);
+        if (whitelistGivers.length === 0) {
+            console.log('Shard givers empty, using all');
+            whitelistGivers = [...givers];
+        }
         if (liteClient instanceof ton_1.TonClient4) {
             const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
             let newBestGiber = { address: '', coins: 0 };
