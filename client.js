@@ -12,11 +12,12 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getLiteClient = exports.getTonCenterClient = exports.getTon4ClientTonhub = exports.getTon4ClientOrbs = exports.getTon4Client = exports.intToIP = void 0;
+exports.getTonapiClient = exports.getLiteClient = exports.getTonCenterClient = exports.getTon4ClientTonhub = exports.getTon4ClientOrbs = exports.getTon4Client = exports.intToIP = void 0;
 const ton_1 = require("@ton/ton");
 const axios_1 = __importDefault(require("axios"));
 const ton_lite_client_1 = require("ton-lite-client");
 const ton_access_1 = require("@orbs-network/ton-access");
+const tonapi_sdk_js_1 = require("tonapi-sdk-js");
 let lc4 = undefined;
 let lc = undefined;
 let lcOrbs = undefined;
@@ -102,3 +103,20 @@ function getLiteClient(_configUrl) {
     });
 }
 exports.getLiteClient = getLiteClient;
+function getTonapiClient() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const httpClient = new tonapi_sdk_js_1.HttpClient({
+            baseUrl: 'https://tonapi.io/',
+            baseApiParams: {
+                headers: {
+                    Authorization: `Bearer ${process.env.TONAPI_TOKEN}`,
+                    'Content-type': 'application/json'
+                }
+            }
+        });
+        // Initialize the API client
+        const client = new tonapi_sdk_js_1.Api(httpClient);
+        return client;
+    });
+}
+exports.getTonapiClient = getTonapiClient;
