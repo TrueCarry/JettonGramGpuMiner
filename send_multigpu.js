@@ -144,7 +144,9 @@ function getPowInfo(liteClient, address) {
 }
 let go = true;
 let i = 0;
+let success = 0;
 let lastMinedSeed = BigInt(0);
+let start = Date.now();
 function main() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -187,6 +189,7 @@ function main() {
         }
         const targetAddress = TARGET_ADDRESS !== null && TARGET_ADDRESS !== void 0 ? TARGET_ADDRESS : wallet.address.toString({ bounceable: false, urlSafe: true });
         console.log('Target address:', targetAddress);
+        console.log('Date, time, status, seed, attempts, successes, timespent');
         try {
             yield updateBestGivers(liteClient, wallet.address);
         }
@@ -252,7 +255,7 @@ function main() {
                 }
             }));
             if (!mined) {
-                console.log(`${new Date()}: not mined`, seed, i++);
+                console.log(`${formatTime()}: not mined`, seed.toString(16).slice(0, 4), i++, success, Math.floor((Date.now() - start) / 1000));
             }
             if (mined) {
                 const [newSeed] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
@@ -260,7 +263,7 @@ function main() {
                     console.log('Mined already too late seed');
                     continue;
                 }
-                console.log(`${new Date()}:     mined`, seed, i++);
+                console.log(`${formatTime()}:     mined`, seed.toString(16).slice(0, 4), i++, ++success, Math.floor((Date.now() - start) / 1000));
                 let seqno = 0;
                 if (liteClient instanceof ton_lite_client_1.LiteClient || liteClient instanceof ton_1.TonClient4) {
                     let w = liteClient.open(wallet);
@@ -419,3 +422,14 @@ function delay(ms) {
     });
 }
 exports.delay = delay;
+function formatTime() {
+    return new Date().toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: "numeric",
+        minute: "numeric",
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+        second: "numeric"
+    });
+}
