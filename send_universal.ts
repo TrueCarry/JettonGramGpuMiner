@@ -10,7 +10,7 @@ import dotenv from 'dotenv'
 import { givers100, givers1000 } from './givers'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
-import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient } from './client';
+import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient, getTonapiClient } from './client';
 import { HighloadWalletV2 } from '@scaleton/highload-wallet';
 import { OpenedContract } from '@ton/core';
 import { Api } from 'tonapi-sdk-js';
@@ -19,6 +19,8 @@ dotenv.config({ path: 'config.txt.txt' })
 dotenv.config({ path: '.env.txt' })
 dotenv.config()
 dotenv.config({ path: 'config.txt' })
+
+type ApiObj = LiteClient | TonClient4 | Api<unknown>
 
 const args = arg({
     '--givers': Number, // 100 1000 10000
@@ -80,7 +82,7 @@ const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823
 
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
-async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: Address) {
+async function updateBestGivers(liteClient: ApiObj, myAddress: Address) {
     let whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
         const shardMaxDepth = 1
         const giverAddress = Address.parse(giver.address)
@@ -145,10 +147,33 @@ async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: 
             }
         }))
         bestGiver = newBestGiber
+    } else if (liteClient instanceof Api) {
+
+        let newBestGiber: { address: string, coins: number } = { address: '', coins: 0 }
+        await Promise.all(whitelistGivers.map(async (giver) => {
+            // for (const giver of givers) {
+            try {
+                const powInfo = await CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(Address.parse(giver.address).toRawString(), 'get_pow_params', {}), 50, 250)
+                const seed = BigInt(powInfo.stack[0].num as string)
+                const complexity = BigInt(powInfo.stack[1].num as string)
+                const iterations = BigInt(powInfo.stack[2].num as string)
+                const hashes = totalDiff / complexity
+                const coinsPerHash = giver.reward / Number(hashes)
+                if (coinsPerHash > newBestGiber.coins) {
+                    newBestGiber = { address: giver.address, coins: coinsPerHash }
+                }
+            } catch (e) {
+                console.log('lt error', e)
+                throw e
+            }
+            // }
+
+        }))
+        bestGiver = newBestGiber
     }
 }
 
-async function getPowInfo(liteClient: TonClient4 | LiteClient, address: Address): Promise<[bigint, bigint, bigint]> {
+async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint, bigint, bigint]> {
     if (liteClient instanceof TonClient4) {
         const lastInfo = await CallForSuccess(() => liteClient.getLastBlock())
         const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, address, 'get_pow_params', []))
@@ -171,15 +196,29 @@ async function getPowInfo(liteClient: TonClient4 | LiteClient, address: Address)
         const iterations = reader.readBigNumber()
 
         return [seed, complexity, iterations]
-    }
+    } else if (liteClient instanceof Api) {
+        try {
+            const powInfo = await CallForSuccess(
+                () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}),
+                50,
+                250)
 
+            const seed = BigInt(powInfo.stack[0].num as string)
+            const complexity = BigInt(powInfo.stack[1].num as string)
+            const iterations = BigInt(powInfo.stack[2].num as string)
+
+            return [seed, complexity, iterations]
+        } catch (e) {
+            console.log('ls error', e)
+        }
+    }
     throw new Error('invalid client')
 }
 
 let go = true
 let i = 0
 async function main() {
-    let liteClient: TonClient4 | LiteClient
+    let liteClient: ApiObj
     if (!args['--api']) {
         console.log('Using TonHub API')
         liteClient = await getTon4Client()
@@ -187,6 +226,9 @@ async function main() {
         if (args['--api'] === 'lite') {
             console.log('Using LiteServer API')
             liteClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
+        } else if (args['--api'] === 'tonapi') {
+            console.log('Using TonApi')
+            liteClient = await getTonapiClient()
         } else {
             console.log('Using TonHub API')
             liteClient = await getTon4Client()
@@ -204,13 +246,17 @@ async function main() {
     } else {
         console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
     }
-    const opened = liteClient.open(wallet)
 
-    await updateBestGivers(liteClient, wallet.address)
+    try {
+        await updateBestGivers(liteClient, wallet.address)
+    } catch (e) {
+        console.log('error', e)
+        throw Error('no givers')
+    }
 
     setInterval(() => {
         updateBestGivers(liteClient, wallet.address)
-    }, 30000)
+    }, 300000)
 
     while (go) {
         const giverAddress = bestGiver.address
@@ -241,40 +287,26 @@ async function main() {
             }
 
             console.log(`${new Date()}:     mined`, seed, i++)
-
-
-            let w = opened as OpenedContract<WalletContractV4>
             let seqno = 0
-            try {
-                seqno = await CallForSuccess(() => w.getSeqno())
-            } catch (e) {
-                //
+
+            if (liteClient instanceof LiteClient || liteClient instanceof TonClient4) {
+                let w = liteClient.open(wallet)
+                try {
+                    seqno = await CallForSuccess(() => w.getSeqno())
+                } catch (e) {
+                    //
+                }
+            } else {
+                const res = await CallForSuccess(
+                    () => (liteClient as Api<unknown>).blockchain.execGetMethodForBlockchainAccount(wallet.address.toRawString(), "seqno", {}),
+                    50,
+                    250
+                )
+                if (res.success) {
+                    seqno = Number(BigInt(res.stack[0].num as string))
+                }
             }
             sendMinedBoc(wallet, seqno, keyPair, giverAddress, Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef())
-            // for (let j = 0; j < 5; j++) {
-            //     try {
-            //         await CallForSuccess(() => {
-
-            //             return w.sendTransfer({
-            //                 seqno,
-            //                 secretKey: keyPair.secretKey,
-            //                 messages: [internal({
-            //                     to: giverAddress,
-            //                     value: toNano('0.05'),
-            //                     bounce: true,
-            //                     body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
-            //                 })],
-            //                 sendMode: 3 as any,
-            //             })
-            //         })
-            //         break
-            //     } catch (e) {
-            //         if (j === 4) {
-            //             throw e
-            //         }
-            //         //
-            //     }
-            // }
         }
     }
 }
@@ -300,6 +332,36 @@ async function sendMinedBoc(
         const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
         const w1 = liteServerClient.open(wallet)
         wallets.push(w1)
+    }
+
+    if (args['--api'] === 'tonapi') {
+        const tonapiClient = await getTonapiClient()
+
+        const transfer = wallet.createTransfer({
+            seqno,
+            secretKey: keyPair.secretKey,
+            messages: [internal({
+                to: giverAddress,
+                value: toNano('0.05'),
+                bounce: true,
+                body: boc,
+            })],
+            sendMode: 3 as any,
+        })
+        const msg = beginCell().store(storeMessage(external({
+            to: wallet.address,
+            body: transfer
+        }))).endCell()
+
+        await CallForSuccess(
+            () => tonapiClient.blockchain.sendBlockchainMessage({
+                boc: msg.toBoc().toString('base64'),
+            }),
+            50,
+            300
+        ).catch(() => {
+            console.log('tonapi send error')
+        })
     }
 
     for (let i = 0; i < 3; i++) {

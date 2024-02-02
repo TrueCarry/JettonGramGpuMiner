@@ -23,6 +23,7 @@ let lc = undefined;
 let lcOrbs = undefined;
 let lcHub = undefined;
 let lcToncenter = undefined;
+let tonapiClient = undefined;
 let createLiteClient;
 function intToIP(int) {
     const part1 = int & 255;
@@ -105,17 +106,24 @@ function getLiteClient(_configUrl) {
 exports.getLiteClient = getLiteClient;
 function getTonapiClient() {
     return __awaiter(this, void 0, void 0, function* () {
+        if (tonapiClient) {
+            return tonapiClient;
+        }
+        const headers = {
+            'Content-type': 'application/json'
+        };
+        if (process.env.TONAPI_TOKEN) {
+            headers['Authorization'] = `Bearer ${process.env.TONAPI_TOKEN}`;
+        }
         const httpClient = new tonapi_sdk_js_1.HttpClient({
-            baseUrl: 'https://tonapi.io/',
+            baseUrl: 'https://tonapi.io',
             baseApiParams: {
-                headers: {
-                    Authorization: `Bearer ${process.env.TONAPI_TOKEN}`,
-                    'Content-type': 'application/json'
-                }
+                headers,
             }
         });
         // Initialize the API client
         const client = new tonapi_sdk_js_1.Api(httpClient);
+        tonapiClient = client;
         return client;
     });
 }
