@@ -59,7 +59,7 @@ if (args['--givers']) {
     }
 }
 else {
-    console.log('Using givers 10 000');
+    console.log('Using givers 1 000');
 }
 let bin = '.\\pow-miner-cuda.exe';
 if (args['--bin']) {
