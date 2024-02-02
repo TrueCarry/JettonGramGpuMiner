@@ -134,6 +134,7 @@ async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint
 
 let go = true
 let i = 0
+let lastMinedSeed: bigint = BigInt(0)
 async function main() {
     let liteClient: ApiObj
     if (!args['--api']) {
@@ -178,6 +179,12 @@ async function main() {
     while (go) {
         const giverAddress = bestGiver.address
         const [seed, complexity, iterations] = await getPowInfo(liteClient, Address.parse(giverAddress))
+        if (seed === lastMinedSeed) {
+            // console.log('Wating for a new seed')
+            updateBestGivers(liteClient, wallet.address)
+            await delay(200)
+            continue
+        }
 
         const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
         const path = `bocs/${randomName}`
@@ -189,6 +196,7 @@ async function main() {
         let mined: Buffer | undefined = undefined
         try {
             mined = fs.readFileSync(path)
+            lastMinedSeed = seed
             fs.rmSync(path)
         } catch (e) {
             //
@@ -270,32 +278,47 @@ async function sendMinedBoc(
             body: transfer
         }))).endCell()
 
-        await CallForSuccess(
-            () => tonapiClient.blockchain.sendBlockchainMessage({
-                boc: msg.toBoc().toString('base64'),
-            }),
-            20,
-            200
-        ).catch(() => {
-            console.log('tonapi send error')
-        })
-    }
+        let k = 0
+        let lastError: unknown
 
-    for (let i = 0; i < 3; i++) {
-        for (const w of wallets) {
-            w.sendTransfer({
-                seqno,
-                secretKey: keyPair.secretKey,
-                messages: [internal({
-                    to: giverAddress,
-                    value: toNano('0.05'),
-                    bounce: true,
-                    body: boc,
-                })],
-                sendMode: 3 as any,
-            }).catch(e => {
-                //
-            })
+        while (k < 20) {
+            try {
+                await tonapiClient.blockchain.sendBlockchainMessage({
+                    boc: msg.toBoc().toString('base64'),
+                })
+                break
+                // return res
+            } catch (e: any) {
+                // lastError = err
+                k++
+
+                if (e.status === 429) {
+                    await delay(200)
+                } else {
+                    console.log('tonapi error')
+                    k = 20
+                    break
+                }
+
+            }
+        }
+    } else {
+        for (let i = 0; i < 3; i++) {
+            for (const w of wallets) {
+                w.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    messages: [internal({
+                        to: giverAddress,
+                        value: toNano('0.05'),
+                        bounce: true,
+                        body: boc,
+                    })],
+                    sendMode: 3 as any,
+                }).catch(e => {
+                    //
+                })
+            }
         }
     }
 }

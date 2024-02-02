@@ -131,6 +131,7 @@ function getPowInfo(liteClient, address) {
 }
 let go = true;
 let i = 0;
+let lastMinedSeed = BigInt(0);
 function main() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
@@ -177,6 +178,12 @@ function main() {
         while (go) {
             const giverAddress = bestGiver.address;
             const [seed, complexity, iterations] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
+            if (seed === lastMinedSeed) {
+                // console.log('Wating for a new seed')
+                updateBestGivers(liteClient, wallet.address);
+                yield delay(200);
+                continue;
+            }
             const randomName = (yield (0, crypto_1.getSecureRandomBytes)(8)).toString('hex') + '.boc';
             const path = `bocs/${randomName}`;
             const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
@@ -188,6 +195,7 @@ function main() {
             let mined = undefined;
             try {
                 mined = fs_1.default.readFileSync(path);
+                lastMinedSeed = seed;
                 fs_1.default.rmSync(path);
             }
             catch (e) {
@@ -257,27 +265,47 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
                 to: wallet.address,
                 body: transfer
             }))).endCell();
-            yield CallForSuccess(() => tonapiClient.blockchain.sendBlockchainMessage({
-                boc: msg.toBoc().toString('base64'),
-            }), 20, 200).catch(() => {
-                console.log('tonapi send error');
-            });
+            let k = 0;
+            let lastError;
+            while (k < 20) {
+                try {
+                    yield tonapiClient.blockchain.sendBlockchainMessage({
+                        boc: msg.toBoc().toString('base64'),
+                    });
+                    break;
+                    // return res
+                }
+                catch (e) {
+                    // lastError = err
+                    k++;
+                    if (e.status === 429) {
+                        yield delay(200);
+                    }
+                    else {
+                        console.log('tonapi error');
+                        k = 20;
+                        break;
+                    }
+                }
+            }
         }
-        for (let i = 0; i < 3; i++) {
-            for (const w of wallets) {
-                w.sendTransfer({
-                    seqno,
-                    secretKey: keyPair.secretKey,
-                    messages: [(0, core_1.internal)({
-                            to: giverAddress,
-                            value: (0, core_1.toNano)('0.05'),
-                            bounce: true,
-                            body: boc,
-                        })],
-                    sendMode: 3,
-                }).catch(e => {
-                    //
-                });
+        else {
+            for (let i = 0; i < 3; i++) {
+                for (const w of wallets) {
+                    w.sendTransfer({
+                        seqno,
+                        secretKey: keyPair.secretKey,
+                        messages: [(0, core_1.internal)({
+                                to: giverAddress,
+                                value: (0, core_1.toNano)('0.05'),
+                                bounce: true,
+                                body: boc,
+                            })],
+                        sendMode: 3,
+                    }).catch(e => {
+                        //
+                    });
+                }
             }
         }
     });
