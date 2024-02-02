@@ -199,7 +199,7 @@ function main() {
         yield updateBestGivers(liteClient, wallet.address);
         setInterval(() => {
             updateBestGivers(liteClient, wallet.address);
-        }, 1000);
+        }, 30000);
         while (go) {
             const giverAddress = bestGiver.address;
             const [seed, complexity, iterations] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
@@ -269,49 +269,18 @@ main();
 function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
+        const wallets = [];
         const ton4Client = yield (0, client_1.getTon4Client)();
         const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
-        const toncenterClient = yield (0, client_1.getTonCenterClient)();
-        const w1 = liteServerClient.open(wallet);
         const w2 = ton4Client.open(wallet);
         const w3 = tonOrbsClient.open(wallet);
-        const w4 = toncenterClient.open(wallet);
-        const wallets = [w1, w2, w3];
-        // const transferBoc = w1.createTransfer({
-        //     seqno,
-        //     secretKey: keyPair.secretKey,
-        //     messages: [internal({
-        //         to: giverAddress,
-        //         value: toNano('0.05'),
-        //         bounce: true,
-        //         body: boc,
-        //     })],
-        //     sendMode: 3 as any,
-        // })
-        // console.log('send seqno', seqno)
-        // const ext = external({
-        //     to: Address.parse(giverAddress),
-        //     body: transferBoc
-        // })
-        // const dataBoc = beginCell().store(storeMessage(ext)).endCell()
-        // toncenterClient.sendFile(dataBoc.toBoc()).then(() => {
-        //     console.log('toncenter success')
-        // }).catch(e => {
-        //     //
-        //     console.log('toncenter send error', e)
-        // })
-        // w4.sendTransfer({
-        //     seqno,
-        //     secretKey: keyPair.secretKey,
-        //     messages: [internal({
-        //         to: giverAddress,
-        //         value: toNano('0.05'),
-        //         bounce: true,
-        //         body: boc,
-        //     })],
-        //     sendMode: 3 as any,
-        // })
+        wallets.push(w2);
+        wallets.push(w3);
+        if (args['--api'] === 'lite') {
+            const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
+            const w1 = liteServerClient.open(wallet);
+            wallets.push(w1);
+        }
         for (let i = 0; i < 3; i++) {
             for (const w of wallets) {
                 w.sendTransfer({
