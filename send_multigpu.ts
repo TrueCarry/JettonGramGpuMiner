@@ -149,7 +149,10 @@ async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint
 
 let go = true
 let i = 0
+let success = 0
 let lastMinedSeed: bigint = BigInt(0)
+let start = Date.now()
+
 async function main() {
     const minerOk = await testMiner(gpus)
     if (!minerOk) {
@@ -190,6 +193,7 @@ async function main() {
 
     const targetAddress = TARGET_ADDRESS ?? wallet.address.toString({ bounceable: false, urlSafe: true })
     console.log('Target address:', targetAddress)
+    console.log('Date, time, status, seed, attempts, successes, timespent')
 
     try {
         await updateBestGivers(liteClient, wallet.address)
@@ -266,7 +270,7 @@ async function main() {
 
 
         if (!mined) {
-            console.log(`${new Date()}: not mined`, seed, i++)
+            console.log(`${formatTime()}: not mined`, seed.toString(16).slice(0, 4), i++, success, Math.floor((Date.now() - start) / 1000))
         }
 
         if (mined) {
@@ -276,7 +280,7 @@ async function main() {
                 continue
             }
 
-            console.log(`${new Date()}:     mined`, seed, i++)
+            console.log(`${formatTime()}:     mined`, seed.toString(16).slice(0, 4), i++, ++success, Math.floor((Date.now() - start) / 1000))
             let seqno = 0
 
             if (liteClient instanceof LiteClient || liteClient instanceof TonClient4) {
@@ -448,4 +452,17 @@ export function delay(ms: number) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms)
     })
+}
+
+
+function formatTime() {
+    return new Date().toLocaleTimeString('en-US', {
+        hour12: false,
+        hour: "numeric",
+        minute: "numeric",
+        day: "numeric",
+        month: "numeric",
+        year: "numeric",
+        second: "numeric"
+    });
 }
