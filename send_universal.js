@@ -85,80 +85,11 @@ const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823
 let bestGiver = { address: '', coins: 0 };
 function updateBestGivers(liteClient, myAddress) {
     return __awaiter(this, void 0, void 0, function* () {
-        let whitelistGivers = allowShards ? [...givers] : givers.filter((giver) => {
-            const shardMaxDepth = 1;
-            const giverAddress = core_1.Address.parse(giver.address);
-            const myShard = new core_1.BitReader(new core_1.BitString(myAddress.hash, 0, 1024)).loadUint(shardMaxDepth);
-            const giverShard = new core_1.BitReader(new core_1.BitString(giverAddress.hash, 0, 1024)).loadUint(shardMaxDepth);
-            if (myShard === giverShard) {
-                return true;
-            }
-            return false;
-        });
-        if (whitelistGivers.length === 0) {
-            whitelistGivers = [...givers];
-        }
-        if (liteClient instanceof ton_1.TonClient4) {
-            const lastInfo = yield CallForSuccess(() => liteClient.getLastBlock());
-            let newBestGiber = { address: '', coins: 0 };
-            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
-                const stack = yield CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, core_1.Address.parse(giver.address), 'get_pow_params', []));
-                // const powStack = Cell.fromBase64(powInfo.result as string)
-                // const stack = parseTuple(powStack)
-                const reader = new core_1.TupleReader(stack.result);
-                const seed = reader.readBigNumber();
-                const complexity = reader.readBigNumber();
-                const iterations = reader.readBigNumber();
-                const hashes = totalDiff / complexity;
-                const coinsPerHash = giver.reward / Number(hashes);
-                if (coinsPerHash > newBestGiber.coins) {
-                    newBestGiber = { address: giver.address, coins: coinsPerHash };
-                }
-            })));
-            bestGiver = newBestGiber;
-        }
-        else if (liteClient instanceof ton_lite_client_1.LiteClient) {
-            const lastInfo = yield liteClient.getMasterchainInfo();
-            let newBestGiber = { address: '', coins: 0 };
-            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
-                const powInfo = yield liteClient.runMethod(core_1.Address.parse(giver.address), 'get_pow_params', Buffer.from([]), lastInfo.last);
-                const powStack = core_1.Cell.fromBase64(powInfo.result);
-                const stack = (0, core_1.parseTuple)(powStack);
-                const reader = new core_1.TupleReader(stack);
-                const seed = reader.readBigNumber();
-                const complexity = reader.readBigNumber();
-                const iterations = reader.readBigNumber();
-                const hashes = totalDiff / complexity;
-                const coinsPerHash = giver.reward / Number(hashes);
-                if (coinsPerHash > newBestGiber.coins) {
-                    newBestGiber = { address: giver.address, coins: coinsPerHash };
-                }
-            })));
-            bestGiver = newBestGiber;
-        }
-        else if (liteClient instanceof tonapi_sdk_js_1.Api) {
-            let newBestGiber = { address: '', coins: 0 };
-            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
-                // for (const giver of givers) {
-                try {
-                    const powInfo = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(core_1.Address.parse(giver.address).toRawString(), 'get_pow_params', {}), 50, 250);
-                    const seed = BigInt(powInfo.stack[0].num);
-                    const complexity = BigInt(powInfo.stack[1].num);
-                    const iterations = BigInt(powInfo.stack[2].num);
-                    const hashes = totalDiff / complexity;
-                    const coinsPerHash = giver.reward / Number(hashes);
-                    if (coinsPerHash > newBestGiber.coins) {
-                        newBestGiber = { address: giver.address, coins: coinsPerHash };
-                    }
-                }
-                catch (e) {
-                    console.log('lt error', e);
-                    throw e;
-                }
-                // }
-            })));
-            bestGiver = newBestGiber;
-        }
+        const giver = givers[Math.floor(Math.random() * givers.length)];
+        bestGiver = {
+            address: giver.address,
+            coins: giver.reward,
+        };
     });
 }
 function getPowInfo(liteClient, address) {
@@ -185,7 +116,7 @@ function getPowInfo(liteClient, address) {
         }
         else if (liteClient instanceof tonapi_sdk_js_1.Api) {
             try {
-                const powInfo = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}), 50, 250);
+                const powInfo = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}), 50, 300);
                 const seed = BigInt(powInfo.stack[0].num);
                 const complexity = BigInt(powInfo.stack[1].num);
                 const iterations = BigInt(powInfo.stack[2].num);
@@ -242,7 +173,7 @@ function main() {
         }
         setInterval(() => {
             updateBestGivers(liteClient, wallet.address);
-        }, 300000);
+        }, 5000);
         while (go) {
             const giverAddress = bestGiver.address;
             const [seed, complexity, iterations] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
@@ -288,7 +219,7 @@ function main() {
                         seqno = Number(BigInt(res.stack[0].num));
                     }
                 }
-                sendMinedBoc(wallet, seqno, keyPair, giverAddress, core_1.Cell.fromBoc(mined)[0].asSlice().loadRef());
+                yield sendMinedBoc(wallet, seqno, keyPair, giverAddress, core_1.Cell.fromBoc(mined)[0].asSlice().loadRef());
             }
         }
     });
@@ -328,7 +259,7 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
             }))).endCell();
             yield CallForSuccess(() => tonapiClient.blockchain.sendBlockchainMessage({
                 boc: msg.toBoc().toString('base64'),
-            }), 50, 300).catch(() => {
+            }), 20, 200).catch(() => {
                 console.log('tonapi send error');
             });
         }
