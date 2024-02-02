@@ -329,36 +329,35 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
                     }
                 }
             }
+            return;
         }
-        else {
-            const wallets = [];
-            const ton4Client = yield (0, client_1.getTon4Client)();
-            const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
-            const w2 = ton4Client.open(wallet);
-            const w3 = tonOrbsClient.open(wallet);
-            wallets.push(w2);
-            wallets.push(w3);
-            if (args['--api'] === 'lite') {
-                const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
-                const w1 = liteServerClient.open(wallet);
-                wallets.push(w1);
-            }
-            for (let i = 0; i < 3; i++) {
-                for (const w of wallets) {
-                    w.sendTransfer({
-                        seqno,
-                        secretKey: keyPair.secretKey,
-                        messages: [(0, core_1.internal)({
-                                to: giverAddress,
-                                value: (0, core_1.toNano)('0.05'),
-                                bounce: true,
-                                body: boc,
-                            })],
-                        sendMode: 3,
-                    }).catch(e => {
-                        //
-                    });
-                }
+        const wallets = [];
+        const ton4Client = yield (0, client_1.getTon4Client)();
+        const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
+        const w2 = ton4Client.open(wallet);
+        const w3 = tonOrbsClient.open(wallet);
+        wallets.push(w2);
+        wallets.push(w3);
+        if (args['--api'] === 'lite') {
+            const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
+            const w1 = liteServerClient.open(wallet);
+            wallets.push(w1);
+        }
+        for (let i = 0; i < 3; i++) {
+            for (const w of wallets) {
+                w.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    messages: [(0, core_1.internal)({
+                            to: giverAddress,
+                            value: (0, core_1.toNano)('0.05'),
+                            bounce: true,
+                            body: boc,
+                        })],
+                    sendMode: 3,
+                }).catch(e => {
+                    //
+                });
             }
         }
     });
