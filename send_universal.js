@@ -94,9 +94,7 @@ function updateBestGivers(liteClient, myAddress) {
             }
             return false;
         });
-        console.log('Whitelist: ', whitelistGivers.length);
         if (whitelistGivers.length === 0) {
-            console.log('Shard givers empty, using all');
             whitelistGivers = [...givers];
         }
         if (liteClient instanceof ton_1.TonClient4) {

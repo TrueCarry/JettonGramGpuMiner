@@ -13,6 +13,7 @@ import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-cli
 import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient } from './client';
 import { HighloadWalletV2 } from '@scaleton/highload-wallet';
 import { OpenedContract } from '@ton/core';
+import { Api } from 'tonapi-sdk-js';
 
 dotenv.config({ path: 'config.txt.txt' })
 dotenv.config({ path: '.env.txt' })
@@ -96,9 +97,7 @@ async function updateBestGivers(liteClient: TonClient4 | LiteClient, myAddress: 
 
         return false
     })
-    console.log('Whitelist: ', whitelistGivers.length)
     if (whitelistGivers.length === 0) {
-        console.log('Shard givers empty, using all')
         whitelistGivers = [...givers]
     }
 
