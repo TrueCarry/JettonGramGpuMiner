@@ -295,7 +295,7 @@ async function sendMinedBoc(
                 if (e.status === 429) {
                     await delay(200)
                 } else {
-                    console.log('tonapi error')
+                    // console.log('tonapi error')
                     k = 20
                     break
                 }

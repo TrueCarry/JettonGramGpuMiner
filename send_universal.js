@@ -282,7 +282,7 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
                         yield delay(200);
                     }
                     else {
-                        console.log('tonapi error');
+                        // console.log('tonapi error')
                         k = 20;
                         break;
                     }
