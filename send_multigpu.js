@@ -228,17 +228,20 @@ function main() {
                     procid.on('exit', () => {
                         let mined = undefined;
                         try {
-                            mined = fs_1.default.readFileSync(path);
-                            resolve(mined);
-                            lastMinedSeed = seed;
-                            fs_1.default.rmSync(path);
-                            for (const handle of handlers) {
-                                handle.kill('SIGINT');
+                            const exists = fs_1.default.existsSync(path);
+                            if (exists) {
+                                mined = fs_1.default.readFileSync(path);
+                                resolve(mined);
+                                lastMinedSeed = seed;
+                                fs_1.default.rmSync(path);
+                                for (const handle of handlers) {
+                                    handle.kill('SIGINT');
+                                }
                             }
                         }
                         catch (e) {
                             //
-                            // console.log('not mined')
+                            console.log('not mined', e);
                         }
                         finally {
                             if (--rest === 0) {

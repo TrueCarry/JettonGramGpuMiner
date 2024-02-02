@@ -242,16 +242,19 @@ async function main() {
                 procid.on('exit', () => {
                     let mined: Buffer | undefined = undefined
                     try {
-                        mined = fs.readFileSync(path)
-                        resolve(mined)
-                        lastMinedSeed = seed
-                        fs.rmSync(path)
-                        for (const handle of handlers) {
-                            handle.kill('SIGINT')
+                        const exists = fs.existsSync(path)
+                        if (exists) {
+                            mined = fs.readFileSync(path)
+                            resolve(mined)
+                            lastMinedSeed = seed
+                            fs.rmSync(path)
+                            for (const handle of handlers) {
+                                handle.kill('SIGINT')
+                            }
                         }
                     } catch (e) {
                         //
-                        // console.log('not mined')
+                        console.log('not mined', e)
                     } finally {
                         if (--rest === 0) {
                             resolve(undefined)
