@@ -211,7 +211,7 @@ async function main() {
 
     setInterval(() => {
         updateBestGivers(liteClient, wallet.address)
-    }, 1000)
+    }, 30000)
 
     while (go) {
         const giverAddress = bestGiver.address
@@ -288,55 +288,20 @@ async function sendMinedBoc(
     giverAddress: string,
     boc: Cell
 ) {
-    const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
+
+    const wallets: OpenedContract<WalletContractV4>[] = []
     const ton4Client = await getTon4Client()
     const tonOrbsClient = await getTon4ClientOrbs()
-    const toncenterClient = await getTonCenterClient()
-
-    const w1 = liteServerClient.open(wallet)
     const w2 = ton4Client.open(wallet)
     const w3 = tonOrbsClient.open(wallet)
-    const w4 = toncenterClient.open(wallet)
+    wallets.push(w2)
+    wallets.push(w3)
 
-    const wallets = [w1, w2, w3]
-
-
-    // const transferBoc = w1.createTransfer({
-    //     seqno,
-    //     secretKey: keyPair.secretKey,
-    //     messages: [internal({
-    //         to: giverAddress,
-    //         value: toNano('0.05'),
-    //         bounce: true,
-    //         body: boc,
-    //     })],
-    //     sendMode: 3 as any,
-    // })
-
-
-    // console.log('send seqno', seqno)
-    // const ext = external({
-    //     to: Address.parse(giverAddress),
-    //     body: transferBoc
-    // })
-    // const dataBoc = beginCell().store(storeMessage(ext)).endCell()
-    // toncenterClient.sendFile(dataBoc.toBoc()).then(() => {
-    //     console.log('toncenter success')
-    // }).catch(e => {
-    //     //
-    //     console.log('toncenter send error', e)
-    // })
-    // w4.sendTransfer({
-    //     seqno,
-    //     secretKey: keyPair.secretKey,
-    //     messages: [internal({
-    //         to: giverAddress,
-    //         value: toNano('0.05'),
-    //         bounce: true,
-    //         body: boc,
-    //     })],
-    //     sendMode: 3 as any,
-    // })
+    if (args['--api'] === 'lite') {
+        const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
+        const w1 = liteServerClient.open(wallet)
+        wallets.push(w1)
+    }
 
     for (let i = 0; i < 3; i++) {
         for (const w of wallets) {
