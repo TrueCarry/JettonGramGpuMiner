@@ -19,6 +19,7 @@
     "axios": "^1.6.7",
     "dotenv": "^16.4.1",
     "ton-lite-client": "npm:@truecarry/ton-lite-client@^3.1.1",
+    "tonapi-sdk-js": "^1.0.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

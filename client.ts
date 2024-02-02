@@ -2,6 +2,7 @@ import { TonClient, TonClient4 } from "@ton/ton"
 import axios from "axios"
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from "ton-lite-client"
 import { getHttpEndpoint, getHttpV4Endpoint } from "@orbs-network/ton-access";
+import { HttpClient, Api } from 'tonapi-sdk-js';
 
 let lc4: TonClient4 | undefined = undefined
 let lc: LiteClient | undefined = undefined
@@ -9,7 +10,7 @@ let lc: LiteClient | undefined = undefined
 let lcOrbs: TonClient4 | undefined = undefined
 let lcHub: TonClient4 | undefined = undefined
 
-let lcToncenter: TonClient| undefined = undefined
+let lcToncenter: TonClient | undefined = undefined
 
 let createLiteClient: Promise<void>
 
@@ -93,4 +94,20 @@ export async function getLiteClient(_configUrl): Promise<LiteClient> {
     await createLiteClient
 
     return lc as any
+}
+
+export async function getTonapiClient(): Promise<Api<unknown>> {
+    const httpClient = new HttpClient({
+        baseUrl: 'https://tonapi.io/',
+        baseApiParams: {
+            headers: {
+                Authorization: `Bearer ${process.env.TONAPI_TOKEN}`,
+                'Content-type': 'application/json'
+            }
+        }
+    });
+    
+    // Initialize the API client
+    const client = new Api(httpClient);
+    return client
 }
