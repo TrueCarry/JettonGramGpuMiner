@@ -33,7 +33,7 @@ dotenv_1.default.config();
 dotenv_1.default.config({ path: 'config.txt' });
 const args = (0, arg_1.default)({
     '--givers': Number, // 100 1000 10000
-    '--api': String, // lite, tonhub
+    '--api': String, // lite, tonhub, tonapi
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
     '--timeout': Number, // Timeout for mining in seconds
@@ -259,18 +259,6 @@ main();
 function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
-        const wallets = [];
-        const ton4Client = yield (0, client_1.getTon4Client)();
-        const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
-        const w2 = ton4Client.open(wallet);
-        const w3 = tonOrbsClient.open(wallet);
-        wallets.push(w2);
-        wallets.push(w3);
-        if (args['--api'] === 'lite') {
-            const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
-            const w1 = liteServerClient.open(wallet);
-            wallets.push(w1);
-        }
         if (args['--api'] === 'tonapi') {
             const tonapiClient = yield (0, client_1.getTonapiClient)();
             const transfer = wallet.createTransfer({
@@ -311,24 +299,35 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
                     }
                 }
             }
+            return;
         }
-        else {
-            for (let i = 0; i < 3; i++) {
-                for (const w of wallets) {
-                    w.sendTransfer({
-                        seqno,
-                        secretKey: keyPair.secretKey,
-                        messages: [(0, core_1.internal)({
-                                to: giverAddress,
-                                value: (0, core_1.toNano)('0.05'),
-                                bounce: true,
-                                body: boc,
-                            })],
-                        sendMode: 3,
-                    }).catch(e => {
-                        //
-                    });
-                }
+        const wallets = [];
+        const ton4Client = yield (0, client_1.getTon4Client)();
+        const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
+        const w2 = ton4Client.open(wallet);
+        const w3 = tonOrbsClient.open(wallet);
+        wallets.push(w2);
+        wallets.push(w3);
+        if (args['--api'] === 'lite') {
+            const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
+            const w1 = liteServerClient.open(wallet);
+            wallets.push(w1);
+        }
+        for (let i = 0; i < 3; i++) {
+            for (const w of wallets) {
+                w.sendTransfer({
+                    seqno,
+                    secretKey: keyPair.secretKey,
+                    messages: [(0, core_1.internal)({
+                            to: giverAddress,
+                            value: (0, core_1.toNano)('0.05'),
+                            bounce: true,
+                            body: boc,
+                        })],
+                    sendMode: 3,
+                }).catch(e => {
+                    //
+                });
             }
         }
     });
