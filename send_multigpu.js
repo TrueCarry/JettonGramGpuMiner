@@ -238,7 +238,7 @@ function main() {
                         }
                         catch (e) {
                             //
-                            console.log('not mined');
+                            // console.log('not mined')
                         }
                         finally {
                             if (--rest === 0) {
