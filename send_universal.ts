@@ -79,6 +79,18 @@ console.log('Using timeout', timeout)
 const mySeed = process.env.SEED as string
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144')
 
+const envAddress = process.env.TARGET_ADDRESS
+let TARGET_ADDRESS: string | undefined = undefined
+if (envAddress) {
+    try {
+        TARGET_ADDRESS = Address.parse(envAddress).toString({ urlSafe: true, bounceable: false })
+    }
+    catch (e) {
+        console.log('Couldnt parse target address')
+        process.exit(1)
+    }
+}
+
 
 
 let bestGiver: { address: string, coins: number } = { address: '', coins: 0 }
@@ -173,7 +185,8 @@ async function main() {
         console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }))
     }
 
-
+    const targetAddress = TARGET_ADDRESS ?? wallet.address.toString({ bounceable: false, urlSafe: true })
+    console.log('Target address:', targetAddress)
 
     try {
         await updateBestGivers(liteClient, wallet.address)
@@ -198,7 +211,7 @@ async function main() {
 
         const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
         const path = `bocs/${randomName}`
-        const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`
+        const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${targetAddress} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`
         try {
             const output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
         } catch (e) {
@@ -351,7 +364,7 @@ async function testMiner(): Promise<boolean> {
     if (!mined) {
         return false
     }
-    
+
     return true
 }
 

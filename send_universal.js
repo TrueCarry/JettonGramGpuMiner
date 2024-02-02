@@ -82,6 +82,17 @@ console.log('Using GPU', gpu);
 console.log('Using timeout', timeout);
 const mySeed = process.env.SEED;
 const totalDiff = BigInt('115792089237277217110272752943501742914102634520085823245724998868298727686144');
+const envAddress = process.env.TARGET_ADDRESS;
+let TARGET_ADDRESS = undefined;
+if (envAddress) {
+    try {
+        TARGET_ADDRESS = core_1.Address.parse(envAddress).toString({ urlSafe: true, bounceable: false });
+    }
+    catch (e) {
+        console.log('Couldnt parse target address');
+        process.exit(1);
+    }
+}
 let bestGiver = { address: '', coins: 0 };
 function updateBestGivers(liteClient, myAddress) {
     return __awaiter(this, void 0, void 0, function* () {
@@ -172,6 +183,8 @@ function main() {
         else {
             console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }));
         }
+        const targetAddress = TARGET_ADDRESS !== null && TARGET_ADDRESS !== void 0 ? TARGET_ADDRESS : wallet.address.toString({ bounceable: false, urlSafe: true });
+        console.log('Target address:', targetAddress);
         try {
             yield updateBestGivers(liteClient, wallet.address);
         }
@@ -193,7 +206,7 @@ function main() {
             }
             const randomName = (yield (0, crypto_1.getSecureRandomBytes)(8)).toString('hex') + '.boc';
             const path = `bocs/${randomName}`;
-            const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${wallet.address.toString({ urlSafe: true, bounceable: true })} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
+            const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${targetAddress} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`;
             try {
                 const output = (0, child_process_1.execSync)(command, { encoding: 'utf-8', stdio: "pipe" }); // the default is 'buffer'
             }
