@@ -26,6 +26,7 @@ const givers_1 = require("./givers");
 const arg_1 = __importDefault(require("arg"));
 const ton_lite_client_1 = require("ton-lite-client");
 const client_1 = require("./client");
+const tonapi_sdk_js_1 = require("tonapi-sdk-js");
 dotenv_1.default.config({ path: 'config.txt.txt' });
 dotenv_1.default.config({ path: '.env.txt' });
 dotenv_1.default.config();
@@ -135,6 +136,29 @@ function updateBestGivers(liteClient, myAddress) {
             })));
             bestGiver = newBestGiber;
         }
+        else if (liteClient instanceof tonapi_sdk_js_1.Api) {
+            let newBestGiber = { address: '', coins: 0 };
+            yield Promise.all(whitelistGivers.map((giver) => __awaiter(this, void 0, void 0, function* () {
+                // for (const giver of givers) {
+                try {
+                    const powInfo = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(core_1.Address.parse(giver.address).toRawString(), 'get_pow_params', {}), 50, 250);
+                    const seed = BigInt(powInfo.stack[0].num);
+                    const complexity = BigInt(powInfo.stack[1].num);
+                    const iterations = BigInt(powInfo.stack[2].num);
+                    const hashes = totalDiff / complexity;
+                    const coinsPerHash = giver.reward / Number(hashes);
+                    if (coinsPerHash > newBestGiber.coins) {
+                        newBestGiber = { address: giver.address, coins: coinsPerHash };
+                    }
+                }
+                catch (e) {
+                    console.log('lt error', e);
+                    throw e;
+                }
+                // }
+            })));
+            bestGiver = newBestGiber;
+        }
     });
 }
 function getPowInfo(liteClient, address) {
@@ -159,6 +183,18 @@ function getPowInfo(liteClient, address) {
             const iterations = reader.readBigNumber();
             return [seed, complexity, iterations];
         }
+        else if (liteClient instanceof tonapi_sdk_js_1.Api) {
+            try {
+                const powInfo = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}), 50, 250);
+                const seed = BigInt(powInfo.stack[0].num);
+                const complexity = BigInt(powInfo.stack[1].num);
+                const iterations = BigInt(powInfo.stack[2].num);
+                return [seed, complexity, iterations];
+            }
+            catch (e) {
+                console.log('ls error', e);
+            }
+        }
         throw new Error('invalid client');
     });
 }
@@ -177,6 +213,10 @@ function main() {
                 console.log('Using LiteServer API');
                 liteClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
             }
+            else if (args['--api'] === 'tonapi') {
+                console.log('Using TonApi');
+                liteClient = yield (0, client_1.getTonapiClient)();
+            }
             else {
                 console.log('Using TonHub API');
                 liteClient = yield (0, client_1.getTon4Client)();
@@ -193,11 +233,16 @@ function main() {
         else {
             console.log('Using v4r2 wallet', wallet.address.toString({ bounceable: false, urlSafe: true }));
         }
-        const opened = liteClient.open(wallet);
-        yield updateBestGivers(liteClient, wallet.address);
+        try {
+            yield updateBestGivers(liteClient, wallet.address);
+        }
+        catch (e) {
+            console.log('error', e);
+            throw Error('no givers');
+        }
         setInterval(() => {
             updateBestGivers(liteClient, wallet.address);
-        }, 30000);
+        }, 300000);
         while (go) {
             const giverAddress = bestGiver.address;
             const [seed, complexity, iterations] = yield getPowInfo(liteClient, core_1.Address.parse(giverAddress));
@@ -227,38 +272,23 @@ function main() {
                     continue;
                 }
                 console.log(`${new Date()}:     mined`, seed, i++);
-                let w = opened;
                 let seqno = 0;
-                try {
-                    seqno = yield CallForSuccess(() => w.getSeqno());
+                if (liteClient instanceof ton_lite_client_1.LiteClient || liteClient instanceof ton_1.TonClient4) {
+                    let w = liteClient.open(wallet);
+                    try {
+                        seqno = yield CallForSuccess(() => w.getSeqno());
+                    }
+                    catch (e) {
+                        //
+                    }
                 }
-                catch (e) {
-                    //
+                else {
+                    const res = yield CallForSuccess(() => liteClient.blockchain.execGetMethodForBlockchainAccount(wallet.address.toRawString(), "seqno", {}), 50, 250);
+                    if (res.success) {
+                        seqno = Number(BigInt(res.stack[0].num));
+                    }
                 }
                 sendMinedBoc(wallet, seqno, keyPair, giverAddress, core_1.Cell.fromBoc(mined)[0].asSlice().loadRef());
-                // for (let j = 0; j < 5; j++) {
-                //     try {
-                //         await CallForSuccess(() => {
-                //             return w.sendTransfer({
-                //                 seqno,
-                //                 secretKey: keyPair.secretKey,
-                //                 messages: [internal({
-                //                     to: giverAddress,
-                //                     value: toNano('0.05'),
-                //                     bounce: true,
-                //                     body: Cell.fromBoc(mined as Buffer)[0].asSlice().loadRef(),
-                //                 })],
-                //                 sendMode: 3 as any,
-                //             })
-                //         })
-                //         break
-                //     } catch (e) {
-                //         if (j === 4) {
-                //             throw e
-                //         }
-                //         //
-                //     }
-                // }
             }
         }
     });
@@ -278,6 +308,29 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
             const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
             const w1 = liteServerClient.open(wallet);
             wallets.push(w1);
+        }
+        if (args['--api'] === 'tonapi') {
+            const tonapiClient = yield (0, client_1.getTonapiClient)();
+            const transfer = wallet.createTransfer({
+                seqno,
+                secretKey: keyPair.secretKey,
+                messages: [(0, core_1.internal)({
+                        to: giverAddress,
+                        value: (0, core_1.toNano)('0.05'),
+                        bounce: true,
+                        body: boc,
+                    })],
+                sendMode: 3,
+            });
+            const msg = (0, core_1.beginCell)().store((0, core_1.storeMessage)((0, core_1.external)({
+                to: wallet.address,
+                body: transfer
+            }))).endCell();
+            yield CallForSuccess(() => tonapiClient.blockchain.sendBlockchainMessage({
+                boc: msg.toBoc().toString('base64'),
+            }), 50, 300).catch(() => {
+                console.log('tonapi send error');
+            });
         }
         for (let i = 0; i < 3; i++) {
             for (const w of wallets) {

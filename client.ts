@@ -12,6 +12,8 @@ let lcHub: TonClient4 | undefined = undefined
 
 let lcToncenter: TonClient | undefined = undefined
 
+let tonapiClient: Api<unknown> | undefined = undefined
+
 let createLiteClient: Promise<void>
 
 export function intToIP(int: number) {
@@ -97,17 +99,26 @@ export async function getLiteClient(_configUrl): Promise<LiteClient> {
 }
 
 export async function getTonapiClient(): Promise<Api<unknown>> {
+    if (tonapiClient) {
+        return tonapiClient
+    }
+
+    const headers = {
+        'Content-type': 'application/json'
+    }
+
+    if (process.env.TONAPI_TOKEN) {
+        headers['Authorization'] = `Bearer ${process.env.TONAPI_TOKEN}`
+    }
     const httpClient = new HttpClient({
-        baseUrl: 'https://tonapi.io/',
+        baseUrl: 'https://tonapi.io',
         baseApiParams: {
-            headers: {
-                Authorization: `Bearer ${process.env.TONAPI_TOKEN}`,
-                'Content-type': 'application/json'
-            }
+            headers,
         }
     });
     
     // Initialize the API client
     const client = new Api(httpClient);
+    tonapiClient = client
     return client
 }
