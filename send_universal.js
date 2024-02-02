@@ -135,6 +135,13 @@ let lastMinedSeed = BigInt(0);
 function main() {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
+        const minerOk = yield testMiner();
+        if (!minerOk) {
+            console.log('Your miner is not working');
+            console.log('Check if you use correct bin (cuda, amd).');
+            console.log('If it doesn\'t help, try to run test_cuda or test_opencl script, to find out issue');
+            process.exit(1);
+        }
         let liteClient;
         if (!args['--api']) {
             console.log('Using TonHub API');
@@ -308,6 +315,30 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
                 }
             }
         }
+    });
+}
+function testMiner() {
+    return __awaiter(this, void 0, void 0, function* () {
+        const randomName = (yield (0, crypto_1.getSecureRandomBytes)(8)).toString('hex') + '.boc';
+        const path = `bocs/${randomName}`;
+        const command = `${bin} -g ${gpu} -F 128 -t ${timeout} kQBWkNKqzCAwA9vjMwRmg7aY75Rf8lByPA9zKXoqGkHi8SM7 229760179690128740373110445116482216837 53919893334301279589334030174039261347274288845081144962207220498400000000000 10000000000 kQBWkNKqzCAwA9vjMwRmg7aY75Rf8lByPA9zKXoqGkHi8SM7 ${path}`;
+        try {
+            const output = (0, child_process_1.execSync)(command, { encoding: 'utf-8', stdio: "pipe" }); // the default is 'buffer'
+        }
+        catch (e) {
+        }
+        let mined = undefined;
+        try {
+            mined = fs_1.default.readFileSync(path);
+            fs_1.default.rmSync(path);
+        }
+        catch (e) {
+            //
+        }
+        if (!mined) {
+            return false;
+        }
+        return true;
     });
 }
 // Function to call ton api untill we get response.
