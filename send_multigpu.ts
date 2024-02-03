@@ -291,11 +291,18 @@ async function main() {
                     //
                 }
             } else {
-                const res = await CallForSuccess(
-                    () => (liteClient as Api<unknown>).blockchain.execGetMethodForBlockchainAccount(wallet.address.toRawString(), "seqno", {}),
-                    50,
-                    250
-                )
+                let res
+                try {
+                    res = await CallForSuccess(
+                        () => (liteClient as Api<unknown>).blockchain.execGetMethodForBlockchainAccount(wallet.address.toRawString(), "seqno", {}),
+                        50,
+                        250
+                    )
+                } catch (e) {
+                    // EXIT CURRENT MINING PROCESS - WAIT WHILE WALLET IS ACTIVATED
+                    throw (new Error("Can't get seqno from the wallet. Please, ensure that your wallet is activated. Otherwise, send 0.01 TON from it for activation"))
+                }
+
                 if (res.success) {
                     seqno = Number(BigInt(res.stack[0].num as string))
                 }
