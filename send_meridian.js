@@ -121,6 +121,14 @@ function getPowInfo(liteClient, address) {
             const complexity = reader.readBigNumber();
             const iterations = reader.readBigNumber();
             const seed = reader.readBigNumber();
+            const A = reader.readBigNumber();
+            const B = reader.readBigNumber();
+            const C = reader.readBigNumber();
+            const left = reader.readBigNumber();
+            // const left = BigInt(powInfo.stack[6].num as string)
+            if (left < BigInt(1)) {
+                throw new Error('no mrdn left');
+            }
             return [seed, complexity, iterations];
         }
         else if (liteClient instanceof ton_lite_client_1.LiteClient) {
@@ -133,6 +141,14 @@ function getPowInfo(liteClient, address) {
             const complexity = reader.readBigNumber();
             const iterations = reader.readBigNumber();
             const seed = reader.readBigNumber();
+            const A = reader.readBigNumber();
+            const B = reader.readBigNumber();
+            const C = reader.readBigNumber();
+            const left = reader.readBigNumber();
+            // const left = BigInt(powInfo.stack[6].num as string)
+            if (left < BigInt(1)) {
+                throw new Error('no mrdn left');
+            }
             return [seed, complexity, iterations];
         }
         else if (liteClient instanceof tonapi_sdk_js_1.Api) {
@@ -142,6 +158,10 @@ function getPowInfo(liteClient, address) {
                 const complexity = BigInt(powInfo.stack[0].num);
                 const seed = BigInt(powInfo.stack[2].num);
                 const iterations = BigInt(powInfo.stack[1].num);
+                const left = BigInt(powInfo.stack[6].num);
+                if (left < BigInt(1)) {
+                    throw new Error('no mrdn left');
+                }
                 // console.log('pow stack', powInfo.stack)
                 return [seed, complexity, iterations];
             }
