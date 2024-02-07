@@ -7,7 +7,7 @@ import { execSync } from 'child_process';
 import fs from 'fs'
 import { WalletContractV4 } from '@ton/ton';
 import dotenv from 'dotenv'
-import { givers100, givers1000 } from './givers'
+import { givers100, givers1000, givers10000, givers100000 } from './givers_meridian'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
 import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient, getTonapiClient } from './client';
@@ -23,7 +23,7 @@ dotenv.config({ path: 'config.txt' })
 type ApiObj = LiteClient | TonClient4 | Api<unknown>
 
 const args = arg({
-    '--givers': Number, // 100 1000 10000
+    '--givers': Number, // 100 1000 10000 100000
     '--api': String, // lite, tonhub, tonapi
     '--bin': String, // cuda, opencl or path to miner
     '--gpu': Number, // gpu id, default 0
@@ -36,7 +36,7 @@ const args = arg({
 let givers = givers1000
 if (args['--givers']) {
     const val = args['--givers']
-    const allowed = [100, 1000]
+    const allowed = [100, 1000, 10000, 100000]
     if (!allowed.includes(val)) {
         throw new Error('Invalid --givers argument')
     }
@@ -49,6 +49,14 @@ if (args['--givers']) {
         case 1000:
             givers = givers1000
             console.log('Using givers 1 000')
+            break
+        case 10000:
+            givers = givers10000
+            console.log('Using givers 10 000')
+            break
+        case 100000:
+            givers = givers100000
+            console.log('Using givers 100 000')
             break
     }
 } else {
@@ -105,38 +113,47 @@ async function updateBestGivers(liteClient: ApiObj, myAddress: Address) {
 async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint, bigint, bigint]> {
     if (liteClient instanceof TonClient4) {
         const lastInfo = await CallForSuccess(() => liteClient.getLastBlock())
-        const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, address, 'get_pow_params', []))
-
+        const powInfo = await CallForSuccess(() => liteClient.runMethod(lastInfo.last.seqno, address, 'get_mining_status', []))
         // console.log('pow info', powInfo, powInfo.result)
-
         const reader = new TupleReader(powInfo.result)
-        const seed = reader.readBigNumber()
         const complexity = reader.readBigNumber()
         const iterations = reader.readBigNumber()
+        const seed = reader.readBigNumber()
+
+
 
         return [seed, complexity, iterations]
     } else if (liteClient instanceof LiteClient) {
         const lastInfo = await liteClient.getMasterchainInfo()
-        const powInfo = await liteClient.runMethod(address, 'get_pow_params', Buffer.from([]), lastInfo.last)
+        const powInfo = await liteClient.runMethod(address, 'get_mining_status', Buffer.from([]), lastInfo.last)
         const powStack = Cell.fromBase64(powInfo.result as string)
         const stack = parseTuple(powStack)
+        // console.log('pow stack', stack)
 
         const reader = new TupleReader(stack)
-        const seed = reader.readBigNumber()
         const complexity = reader.readBigNumber()
+
         const iterations = reader.readBigNumber()
+        const seed = reader.readBigNumber()
+
 
         return [seed, complexity, iterations]
     } else if (liteClient instanceof Api) {
         try {
             const powInfo = await CallForSuccess(
-                () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_pow_params', {}),
+                () => liteClient.blockchain.execGetMethodForBlockchainAccount(address.toRawString(), 'get_mining_status', {}),
                 50,
                 300)
 
-            const seed = BigInt(powInfo.stack[0].num as string)
-            const complexity = BigInt(powInfo.stack[1].num as string)
-            const iterations = BigInt(powInfo.stack[2].num as string)
+            // console.log('pow', powInfo.stack)
+            const complexity = BigInt(powInfo.stack[0].num as string)
+            const seed = BigInt(powInfo.stack[2].num as string)
+
+            const iterations = BigInt(powInfo.stack[1].num as string)
+            // console.log('pow stack', powInfo.stack)
+
+
+
 
             return [seed, complexity, iterations]
         } catch (e) {
@@ -217,9 +234,12 @@ async function main() {
 
         const randomName = (await getSecureRandomBytes(8)).toString('hex') + '.boc'
         const path = `bocs/${randomName}`
-        const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${targetAddress} ${seed} ${complexity} ${iterations} ${giverAddress} ${path}`
+
+        const command = `${bin} -g ${gpu} -F 128 -t ${timeout} ${targetAddress} ${seed} ${complexity} 999999999999999 ${giverAddress} ${path}`
+        // console.log('cmd', command)
+        let output
         try {
-            const output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
+            output = execSync(command, { encoding: 'utf-8', stdio: "pipe" });  // the default is 'buffer'
         } catch (e) {
         }
         let mined: Buffer | undefined = undefined
@@ -281,7 +301,7 @@ async function sendMinedBoc(
             secretKey: keyPair.secretKey,
             messages: [internal({
                 to: giverAddress,
-                value: toNano('0.05'),
+                value: toNano('0.08'),
                 bounce: true,
                 body: boc,
             })],
@@ -340,7 +360,7 @@ async function sendMinedBoc(
                 secretKey: keyPair.secretKey,
                 messages: [internal({
                     to: giverAddress,
-                    value: toNano('0.05'),
+                    value: toNano('0.08'),
                     bounce: true,
                     body: boc,
                 })],
