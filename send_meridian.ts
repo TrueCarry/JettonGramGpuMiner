@@ -121,6 +121,20 @@ async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint
         const seed = reader.readBigNumber()
 
 
+        const A = reader.readBigNumber()
+        const B = reader.readBigNumber()
+        const C = reader.readBigNumber()
+
+        const left = reader.readBigNumber()
+
+
+        // const left = BigInt(powInfo.stack[6].num as string)
+
+        if (left < BigInt(1)) {
+            throw new Error('no mrdn left')
+        }
+
+
 
         return [seed, complexity, iterations]
     } else if (liteClient instanceof LiteClient) {
@@ -136,6 +150,19 @@ async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint
         const iterations = reader.readBigNumber()
         const seed = reader.readBigNumber()
 
+        const A = reader.readBigNumber()
+        const B = reader.readBigNumber()
+        const C = reader.readBigNumber()
+
+        const left = reader.readBigNumber()
+
+
+        // const left = BigInt(powInfo.stack[6].num as string)
+
+        if (left < BigInt(1)) {
+            throw new Error('no mrdn left')
+        }
+
 
         return [seed, complexity, iterations]
     } else if (liteClient instanceof Api) {
@@ -150,6 +177,11 @@ async function getPowInfo(liteClient: ApiObj, address: Address): Promise<[bigint
             const seed = BigInt(powInfo.stack[2].num as string)
 
             const iterations = BigInt(powInfo.stack[1].num as string)
+            const left = BigInt(powInfo.stack[6].num as string)
+
+            if (left < BigInt(1)) {
+                throw new Error('no mrdn left')
+            }
             // console.log('pow stack', powInfo.stack)
 
 
