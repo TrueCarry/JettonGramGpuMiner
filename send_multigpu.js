@@ -333,11 +333,8 @@ function sendMinedBoc(wallet, seqno, keyPair, giverAddress, boc) {
         }
         const wallets = [];
         const ton4Client = yield (0, client_1.getTon4Client)();
-        const tonOrbsClient = yield (0, client_1.getTon4ClientOrbs)();
         const w2 = ton4Client.open(wallet);
-        const w3 = tonOrbsClient.open(wallet);
         wallets.push(w2);
-        wallets.push(w3);
         if (args['--api'] === 'lite') {
             const liteServerClient = yield (0, client_1.getLiteClient)((_a = args['-c']) !== null && _a !== void 0 ? _a : 'https://ton-blockchain.github.io/global.config.json');
             const w1 = liteServerClient.open(wallet);

@@ -10,7 +10,7 @@ import dotenv from 'dotenv'
 import { givers100, givers1000, givers10000, givers100000 } from './givers_meridian'
 import arg from 'arg'
 import { LiteClient, LiteSingleEngine, LiteRoundRobinEngine } from 'ton-lite-client';
-import { getLiteClient, getTon4Client, getTon4ClientOrbs, getTonCenterClient, getTonapiClient } from './client';
+import { getLiteClient, getTon4Client, getTonCenterClient, getTonapiClient } from './client';
 import { HighloadWalletV2 } from '@scaleton/highload-wallet';
 import { OpenedContract } from '@ton/core';
 import { Api } from 'tonapi-sdk-js';
@@ -412,11 +412,8 @@ async function sendMinedBoc(
 
     const wallets: OpenedContract<WalletContractV4>[] = []
     const ton4Client = await getTon4Client()
-    const tonOrbsClient = await getTon4ClientOrbs()
     const w2 = ton4Client.open(wallet)
-    const w3 = tonOrbsClient.open(wallet)
     wallets.push(w2)
-    wallets.push(w3)
 
     if (args['--api'] === 'lite') {
         const liteServerClient = await getLiteClient(args['-c'] ?? 'https://ton-blockchain.github.io/global.config.json')
