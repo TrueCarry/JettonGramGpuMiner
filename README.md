@@ -16,6 +16,26 @@ TONAPI_TOKEN=
 - Установите NodeJs [https://nodejs.org](https://nodejs.org/en)
 - Запустите майнер открыв `start_tonhub.bat` (для AMD - `start_tonhub_amd.bat`)
 
+## THINGS
+Скрипты запуска things:
+```
+start_multi_8_things.bat - Windows, tonapi, 8 GPU, 10 000 givers
+start_multi_8_things.sh - Linux, tonapi, 8 GPU, 10 000 givers
+start_things_tonhub.bat - Windows, tonhub, 10 000 givers
+start_things.bat - Windows, tonapi, 10 000 givers
+start_things.sh - Linux, tonapi, 10 000 givers
+```
+
+Файлы связанные с майнингом things:
+```
+givers_things.js
+givers_things.ts
+send_multigpu_things.js
+send_multigpu_things.ts
+send_universal_things.js
+send_universal_things.ts
+```
+
 ## TonApi
 
 Так же вы можете использовать TonApi(tonconsole.com) как провайдер апи. Он дает повышенную стабильность, но не работает без ключа. На 1 майнера достаточно бесплатного токена. Для запуска майнера с tonapi используйте `start_tonapi_X.bat` или `start_tonapi_X.sh`(с суффиксом \_amd для компьютеров без CUDA)
