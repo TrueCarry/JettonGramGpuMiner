@@ -48,7 +48,7 @@ if (args['--givers']) {
             break
         case 200:
             givers = GiversThings200
-            console.log('Using givers 2000')
+            console.log('Using givers 200')
             break
         case 1000:
             givers = GiversThings1000
