@@ -20,7 +20,7 @@ export const GiversThings100 = [
     { address: 'EQBRfSLLWKpPENVrplO6cgF-YCXT5-KDTJlYTzijziqBc69X', reward: 200 },
     { address: 'EQCBQwfxN3osQrIQaDS2I6hKgt-V6pzC-in56E_SyupI0_xv', reward: 200 },
     { address: 'EQBJ2X9VBfvBsoMfQFYFRmQW4reXOK4fqYxvSqw5PrY0Okyd', reward: 200 },
-    { address: 'EQAwYPZEypqBGNa2KjthhWErg2R4CFrgPk25SrEYqZ0KNxYB', reward: 200 }, // 100
+    { address: 'EQAJnRZ1SP6dazEKh3yljlz1iWlq7wUN1F-eiOED2L8dbh3M', reward: 200 }, // 100
   ]
   
   export const GiversThings1000 = [
