@@ -21,7 +21,7 @@ exports.GiversThings200 = [
     { address: 'EQBRfSLLWKpPENVrplO6cgF-YCXT5-KDTJlYTzijziqBc69X', reward: 200 },
     { address: 'EQCBQwfxN3osQrIQaDS2I6hKgt-V6pzC-in56E_SyupI0_xv', reward: 200 },
     { address: 'EQBJ2X9VBfvBsoMfQFYFRmQW4reXOK4fqYxvSqw5PrY0Okyd', reward: 200 },
-    { address: 'EQAwYPZEypqBGNa2KjthhWErg2R4CFrgPk25SrEYqZ0KNxYB', reward: 200 }, // 100
+    { address: 'EQAwYPZEypqBGNa2KjthhWErg2R4CFrgPk25SrEYqZ0KNxYB', reward: 200 }, // 200
 ];
 exports.GiversThings1000 = [
     { address: 'EQAXkmHPHj38EAoSUpFS4h_-51Nr-0zkt-WvqFz-g9EeyytS', reward: 1000 },
@@ -33,7 +33,7 @@ exports.GiversThings1000 = [
     { address: 'EQCYhHyUdcM-cY-52ajaKn_W_WQ1eiDZi5_MmJLhQYVYlroa', reward: 1000 },
     { address: 'EQCgvetY70xTWBebiW0eqk85d8M7nafRd7IPAck7QVnecnE0', reward: 1000 },
     { address: 'EQCJSX9yLJOXX7jVGpnsFneV-0w2ViSsyqmtrAtMZRAJP9_X', reward: 1000 },
-    { address: 'EQBE4Xu0kyHAN3zKmdrgxQmpMoAYuEsJECPM40PV2Sa6nq1j', reward: 1000 }, // 100
+    { address: 'EQBE4Xu0kyHAN3zKmdrgxQmpMoAYuEsJECPM40PV2Sa6nq1j', reward: 1000 }, // 1000
 ];
 exports.GiversThings5000 = [
     { address: 'EQCpdH9Ly5YzKQvyLvgdpQn8sAa72Q88ChG5Hzy_-bk-OFFz', reward: 5000 },
@@ -45,7 +45,7 @@ exports.GiversThings5000 = [
     { address: 'EQCMF2xRfeKNGreAZ8w5237Rf6Rlrp3in5Wmf7nDVB6hAfwU', reward: 5000 },
     { address: 'EQD8ZchOWgQxbGWLXMUb_DhCkcw9mrJgCmZyHd18UmCVdm8T', reward: 5000 },
     { address: 'EQDLSjsUUCIgFEAxdtJYUbzNPvenpTTXoZjIQqmHWXQ-kBSX', reward: 5000 },
-    { address: 'EQAahx1pXEI0Gmq1hCQrLh0vVFTRVpGgiRHz_088hzQuEr9x', reward: 5000 }, // 100
+    { address: 'EQAahx1pXEI0Gmq1hCQrLh0vVFTRVpGgiRHz_088hzQuEr9x', reward: 5000 }, // 5000
 ];
 exports.GiversThings10000 = [
     { address: 'EQAY4LHfgqInZTekX9SDBmbBimShl3OdmTnQGSw82DQBNKAQ', reward: 10000 },
@@ -57,5 +57,5 @@ exports.GiversThings10000 = [
     { address: 'EQB-Tc3OrKn__jSa9hTPEmbMioOQN08Fvda_85exIB4GPw4g', reward: 10000 },
     { address: 'EQAl3C0k1R8X9Ms7VG4cUpM3u_lKqfKIgYCLjMDMqaiwXynW', reward: 10000 },
     { address: 'EQCHODQyANmzftrcaGUOctE_D7XSEZKTepzxXyGLA6dZNDTJ', reward: 10000 },
-    { address: 'EQDCeae9X_DZji0GEUXV8IFX5BPID2AX8zVCxugeH_H1fb9Z', reward: 10000 }, // 100
+    { address: 'EQDCeae9X_DZji0GEUXV8IFX5BPID2AX8zVCxugeH_H1fb9Z', reward: 10000 }, // 10000
 ];
