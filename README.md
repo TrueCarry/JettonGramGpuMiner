@@ -179,3 +179,66 @@ send_universal_things.ts
 2. 將 `--gpu 0` 替換為 `--gpu-count X`，其中 X 是您的 GPU 數量。
 
 無需其他更改，可以直接啟動運行。  
+
+---
+
+# DE
+## Gemeinschaft
+
+[Telegram Community](https://t.me/blckbazars)
+
+Miner für den GRAM-Token. Es wird Windows und eine GPU mit CUDA- oder OpenCL-Treibern benötigt.
+
+- Erstellen Sie `config.txt`.
+
+- Schreiben Sie Ihre Mnemonik in die Datei `config.txt` im folgenden Format:
+
+  ```
+  SEED=word1 word2
+  TONAPI_TOKEN=
+  ```
+
+- Aktivieren Sie die v4r2-Wallet. Senden Sie Mittel darauf und übertragen Sie dann eine Transaktion an sich selbst.
+
+- Installieren Sie Node.js [Node.js](https://nodejs.org/en).
+
+- Starten Sie den Miner, indem Sie `start_tonhub.bat` öffnen (für AMD verwenden Sie `start_tonhub_amd.bat`).
+
+## DINGE
+
+Startskripte für Dinge:
+
+```
+start_multi_8_things.bat - Windows, tonapi, 8 GPU, 10.000 Giver
+start_multi_8_things.sh - Linux, tonapi, 8 GPU, 10.000 Giver
+start_things_tonhub.bat - Windows, tonhub, 10.000 Giver
+start_things.bat - Windows, tonapi, 10.000 Giver
+start_things.sh - Linux, tonapi, 10.000 Giver
+```
+
+Dateien, die mit dem Mining von Dingen verbunden sind:
+
+```
+givers_things.js
+givers_things.ts
+send_multigpu_things.js
+send_multigpu_things.ts
+send_universal_things.js
+send_universal_things.ts
+```
+
+## TonApi
+
+Sie können auch [TonApi](https://tonconsole.com) als API-Anbieter verwenden. Es bietet eine höhere Stabilität, funktioniert jedoch nicht ohne Schlüssel. Ein kostenloses Token reicht für einen Miner. Um den Miner mit tonapi zu starten, verwenden Sie `start_tonapi_X.bat` oder `start_tonapi_X.sh` (mit dem Suffix _amd für Computer ohne CUDA).
+
+## Multi GPU
+
+Sie können mehrere GPUs mit einem einzigen Script ausführen (siehe `start_multi_8.sh` und `start_multi_8.bat`).
+
+Um jedes Startskript für Multi-GPU zu ändern, befolgen Sie diese Schritte:
+
+1. Ersetzen Sie `send_universal` durch `send_multigpu`.
+
+2. Ersetzen Sie `--gpu 0` durch `--gpu-count X`, wobei X die Anzahl Ihrer GPUs ist.
+
+Keine weiteren Änderungen erforderlich; Sie können es sofort ausführen.
